@@ -1,0 +1,14 @@
+Wed Aug  7 10:55:07 EDT 2013
+
+Tim Brecht: local UW modifications to prevent sys161 from waiting for a gdb
+  connection when the "hang" function is called.
+  This is called when there is a fatal error (e.g., duplicate TLB entries).
+  The -H option can be used to hang and wait for the debugger to connect
+  (i.e., what was the default behaviour).
+  Changes made to main/console.c and main/main.c
+
+  This was needed because our autotesting scripts used to test student
+  code would hang and wait for a gdb connection and it seemed easier
+  to modify the default behaviour for sys161 than to modify both sys161
+  and our scripts.
+
