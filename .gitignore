@@ -1,0 +1,56 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs / temp
+*.log
+*.tmp
+*.temp
+.cache/
+
+# Generic build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.out
+*.elf
+*.bin
+*.img
+
+# C/C++ dependency and debug files
+*.d
+*.gcno
+*.gcda
+*.gch
+
+# Archive artifacts
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# Python (if used for scripts)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS/161 and toolchain generated directories/files (common)
+**/build/
+**/obj/
+**/objs/
+**/tmp/
+**/.deps/
+
+# Keep source tree clean from local env files
+.env
+.env.*
