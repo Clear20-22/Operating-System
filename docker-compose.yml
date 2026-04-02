@@ -1,0 +1,14 @@
+services:
+  os161:
+    image: os161-env:saved
+    platform: linux/amd64
+    container_name: os161-dev
+    stdin_open: true
+    tty: true
+    working_dir: /root/cs350-os161/
+    volumes:
+      - os161-data:/root/cs350-os161
+      - "/Users/jubayerahmedsojib/Documents/GitHub/Operating System/Demo_OS:/host/Demo_OS"
+
+volumes:
+  os161-data:
