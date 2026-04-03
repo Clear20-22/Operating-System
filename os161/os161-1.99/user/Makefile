@@ -9,7 +9,7 @@ TOP=..
 # SUBDIRS=lib bin sbin testbin
 
 # UW Mod
-SUBDIRS=lib bin sbin testbin uw-testbin my-testbin
+SUBDIRS=lib bin sbin testbin uw-testbin my-testbin test
 
 INCLUDES=\
 	include include \

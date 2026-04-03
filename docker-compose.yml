@@ -5,10 +5,8 @@ services:
     container_name: os161-dev
     stdin_open: true
     tty: true
+    environment:
+      - MAKESYSPATH=/root/cs350-os161/bmake/mk
     working_dir: /root/cs350-os161
     volumes:
-      - os161-data:/root/cs350-os161
-      - ./os161:/host/os161
-
-volumes:
-  os161-data:
+      - ./os161:/root/cs350-os161

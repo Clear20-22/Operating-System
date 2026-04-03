@@ -1,41 +1,45 @@
-FROM ubuntu:14.04
+FROM --platform=linux/amd64 ubuntu:14.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV OS161_HOME=/root/sys161
 ENV TOOLDIR=/root/sys161/tools
 ENV PATH=/root/sys161/bin:/root/sys161/tools/bin:$PATH
+ENV MAKESYSPATH=/root/sys161/tools/share/mk
 
 RUN apt-get update && apt-get install -y \
     build-essential g++ make bison flex texinfo \
     libncurses5-dev zlib1g-dev gawk \
     wget curl ca-certificates perl python \
     file patch vim nano \
- && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 RUN mkdir -p $OS161_HOME/tools $OS161_HOME/bin
 
-# keep this exactly matching your local directory name
-COPY Demo_OS/ /workspace/
+# copy your local OS161 bundle into the image build workspace
+COPY os161/ /workspace/
 
 # 1) binutils
 RUN cd /workspace/binutils-2.17+os161-2.0.1 && \
     ./configure --nfp --disable-werror \
-      --target=mips-harvard-os161 --prefix=$TOOLDIR && \
-    make -j2 || (find . -name '*.info' | xargs touch && make -j2) && \
-    make install
+    --build=x86_64-unknown-linux-gnu --host=x86_64-unknown-linux-gnu \
+    --target=mips-harvard-os161 --prefix=$TOOLDIR && \
+    make -j2 all-binutils all-gas all-ld && \
+    make install-binutils install-gas install-ld
 
 # 2) gcc
 RUN cd /workspace/gcc-4.1.2+os161-2.0 && \
     ./configure -nfp --disable-shared --disable-threads \
-      --disable-libmudflap --disable-libssp \
-      --target=mips-harvard-os161 --prefix=$TOOLDIR && \
+    --disable-libmudflap --disable-libssp \
+    --build=x86_64-unknown-linux-gnu --host=x86_64-unknown-linux-gnu \
+    --target=mips-harvard-os161 --prefix=$TOOLDIR && \
     make -j2 && make install
 
 # 3) gdb (no docs/info)
 RUN cd /workspace/gdb-6.6+os161-2.0 && \
     ./configure --target=mips-harvard-os161 \
-      --prefix=$TOOLDIR --disable-werror --disable-nls && \
+    --build=x86_64-unknown-linux-gnu --host=x86_64-unknown-linux-gnu \
+    --prefix=$TOOLDIR --disable-werror --disable-nls && \
     make -j2 MAKEINFO=missing all-gdb all-sim all-bfd && \
     make install-gdb install-sim install-bfd MAKEINFO=missing && \
     mkdir -p $TOOLDIR/bin && \
@@ -46,8 +50,10 @@ RUN cd /workspace/gdb-6.6+os161-2.0 && \
 RUN cd /workspace/bmake && \
     cp -R /workspace/mk ./mk && \
     ./boot-strap --prefix=$TOOLDIR && \
-    mkdir -p $TOOLDIR/bin && \
+    mkdir -p $TOOLDIR/bin $TOOLDIR/share/man/cat1 $TOOLDIR/share && \
     cp Linux/bmake $TOOLDIR/bin/ && \
+    cp bmake.cat1 $TOOLDIR/share/man/cat1/bmake.1 && \
+    sh ./mk/install-mk $TOOLDIR/share/mk && \
     ln -sf $TOOLDIR/bin/bmake $OS161_HOME/bin/bmake
 
 # 5) create cs350-* links exactly like course docs
