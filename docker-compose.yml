@@ -5,10 +5,10 @@ services:
     container_name: os161-dev
     stdin_open: true
     tty: true
-    working_dir: /root/cs350-os161/
+    working_dir: /root/cs350-os161
     volumes:
       - os161-data:/root/cs350-os161
-      - "/Users/jubayerahmedsojib/Documents/GitHub/Operating System/Demo_OS:/host/Demo_OS"
+      - ./os161:/host/os161
 
 volumes:
   os161-data:
