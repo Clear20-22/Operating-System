@@ -2,6 +2,10 @@
 
 This repository contains an OS/161 development environment and source tree configured to run inside Docker. It includes the OS/161 codebase, System/161 simulator, and cross-toolchain sources needed for CS350-style workflows.
 
+For onboarding another macOS user (fork + clone + setup), see:
+
+- `MAC_FORK_CLONE_SETUP_GUIDE.md`
+
 ## Goals
 
 - Work on OS/161 kernel assignments in a reproducible environment
