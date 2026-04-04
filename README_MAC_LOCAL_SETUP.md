@@ -2,7 +2,6 @@
 
 এই guide তাদের জন্য, যারা শুধু নিজের Mac এ project setup করে run করতে চায়.
 
-এই guide এ fork, PR, upstream sync লাগবে না.
 
 ## কে এই guide follow করবে
 
