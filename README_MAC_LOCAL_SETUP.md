@@ -9,7 +9,6 @@
 
 - তুমি শুধু নিজের Mac এ run/build করতে চাও
 - local practice করতে চাও
-- এখনই GitHub contribution দরকার নেই
 
 ## কী লাগবে
 
