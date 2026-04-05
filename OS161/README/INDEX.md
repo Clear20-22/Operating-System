@@ -4,10 +4,10 @@
 
 Start here based on your needs:
 
-- **[QUICK_START.md](QUICK_START.md)** ⭐ → **Start here for daily workflow**
-- **[ASSIGNMENT_GUIDE.md](ASSIGNMENT_GUIDE.md)** → Assignment-specific tips
-- **[README_COMPLETE.md](README_COMPLETE.md)** → Full technical documentation
-- **[README.md](README.md)** → Overview
+- **[QUICK_START.md](OS161/README/QUICK_START.md)** ⭐ → **Start here for daily workflow**
+- **[ASSIGNMENT_GUIDE.md](OS161/README/ASSIGNMENT_GUIDE.md)** → Assignment-specific tips
+- **[README_COMPLETE.md](OS161/README/README_COMPLETE.md)** → Full technical documentation
+- **[README.md](OS161/README.md)** → Overview
 
 ## 🚀 Quick Start (2 minutes)
 
@@ -199,6 +199,6 @@ make run-kernel
 
 ---
 
-**You're all set!** Start with `make setup` and then follow [QUICK_START.md](QUICK_START.md).
+**You're all set!** Start with `make setup` and then follow [QUICK_START.md](OS161/README/QUICK_START.md).
 
 Good luck with your assignments! 🚀

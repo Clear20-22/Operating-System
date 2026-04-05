@@ -34,10 +34,10 @@ This will:
 
 After setup completes, read in order:
 
-1. [ ] Read [INDEX.md](INDEX.md) — Overview
-2. [ ] Read [QUICK_START.md](QUICK_START.md) — Daily workflow
-3. [ ] Read [ASSIGNMENT_GUIDE.md](ASSIGNMENT_GUIDE.md) — Assignment tips
-4. [ ] Bookmark [README_COMPLETE.md](README_COMPLETE.md) — Reference
+1. [ ] Read [INDEX.md](OS161/README/INDEX.md) — Overview
+2. [ ] Read [QUICK_START.md](OS161/README/QUICK_START.md) — Daily workflow
+3. [ ] Read [ASSIGNMENT_GUIDE.md](OS161/README/ASSIGNMENT_GUIDE.md) — Assignment tips
+4. [ ] Bookmark [README_COMPLETE.md](OS161/README/README_COMPLETE.md) — Reference
 
 **Estimated time:** 15 minutes
 
@@ -217,8 +217,8 @@ make help
 
 1. [ ] Run `make setup`
 2. [ ] Wait for build to complete
-3. [ ] Read [INDEX.md](INDEX.md)
-4. [ ] Read [QUICK_START.md](QUICK_START.md)
+3. [ ] Read [INDEX.md](OS161/README/INDEX.md)
+4. [ ] Read [QUICK_START.md](OS161/README/QUICK_START.md)
 5. [ ] Try `make build-asst0 && make run-kernel`
 6. [ ] Start your first assignment
 7. [ ] Success! 🎉
@@ -260,6 +260,6 @@ make run-kernel
 
 **You're all set!** Start with `make setup`.
 
-After that, check [QUICK_START.md](QUICK_START.md) for daily workflow.
+After that, check [QUICK_START.md](OS161/README/QUICK_START.md) for daily workflow.
 
 Good luck! 🚀
