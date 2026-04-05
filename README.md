@@ -5,6 +5,9 @@
 - [ ] Docker Desktop is installed
 - [ ] You have 4GB+ available disk space
 - [ ] You have 4GB+ available RAM
+
+### Option A: Build Yourself (Recommended for first-time setup)
+
 - [ ] You have the 7 OS/161 tar files in this directory:
   - [ ] os161-1.99.05-UWF16.tar
   - [ ] os161-binutils.tar
@@ -13,6 +16,16 @@
   - [ ] os161-bmake.tar
   - [ ] os161-mk.tar
   - [ ] sys161-1.99.06-no-hang.tar
+
+### Option B: Use Pre-Built Docker Image (Fastest)
+
+If you have a pre-built image available, pull it directly:
+
+```bash
+docker pull s0jib/os161-env:latest
+```
+
+Then skip the build step and go straight to **Daily Workflow**.
 
 ## 🚀 Initial Setup (One Time)
 

@@ -1,0 +1,131 @@
+════════════════════════════════════════════════════════════════════════════════
+                      SHARE OS/161 DOCKER IMAGE
+════════════════════════════════════════════════════════════════════════════════
+
+🎯 QUICKEST WAY (5 minutes): Docker Hub
+
+════════════════════════════════════════════════════════════════════════════════
+
+STEP 1: Create Free Docker Hub Account
+  ↓
+  https://hub.docker.com → Sign Up → Verify Email
+
+STEP 2: Login on Your Machine
+  ↓
+  $ docker login
+  Username: your_username
+  Password: your_password
+
+STEP 3: Tag Your Image
+  ↓
+  $ docker tag os161-env:latest your_username/os161-env:latest
+
+STEP 4: Push to Docker Hub
+  ↓
+  $ docker push your_username/os161-env:latest
+  
+  (Wait 5-10 minutes for upload)
+
+STEP 5: Share This Command with Classmates
+  ↓
+  "Run this: docker pull your_username/os161-env:latest"
+
+════════════════════════════════════════════════════════════════════════════════
+
+FOR YOUR CLASSMATES (After you push):
+
+  $ docker pull your_username/os161-env:latest
+  $ docker tag your_username/os161-env:latest os161-env:latest
+  $ cd /their/path/to/OS
+  $ make up
+
+Done! They have your image.
+
+════════════════════════════════════════════════════════════════════════════════
+
+ALTERNATIVE METHODS:
+
+1. Save as File (659MB)
+   $ docker save os161-env:latest -o os161-env.tar.gz
+   → Share via Google Drive / Dropbox / USB
+
+2. Share via GitHub
+   $ git add . && git commit -m "OS/161" && git push
+   → Share repo link, they run: make setup
+
+3. Email (if small enough)
+   → Split into parts, share pieces
+
+════════════════════════════════════════════════════════════════════════════════
+
+WHICH METHOD TO USE?
+
+Quick share (< 10 min):  Docker Hub ✓
+Share with team:        GitHub + Docker Hub
+Slow internet:          Save file, USB drive
+Just config files:      GitHub only (4KB)
+
+════════════════════════════════════════════════════════════════════════════════
+
+EXAMPLE: Sharing with 2 Classmates
+
+You:
+  1. docker login
+  2. docker tag os161-env:latest john_doe/os161-env:latest
+  3. docker push john_doe/os161-env:latest
+  4. Send them: "docker pull john_doe/os161-env:latest"
+
+Them:
+  1. docker pull john_doe/os161-env:latest
+  2. docker tag john_doe/os161-env:latest os161-env:latest
+  3. make up
+  4. make build-asst2
+
+Done!
+
+════════════════════════════════════════════════════════════════════════════════
+
+VERIFICATION (For Classmates)
+
+After pulling, they should verify:
+
+  $ docker images | grep os161-env
+  $ docker run --rm os161-env:latest cs350-gcc --version
+  $ docker run --rm os161-env:latest sys161 --version
+
+Both should show tool versions.
+
+════════════════════════════════════════════════════════════════════════════════
+
+NOTES:
+
+✓ Docker Hub is FREE
+✓ 659MB image = ~5 min upload on good internet
+✓ Public by default (anyone can pull)
+✓ Can make private later (paid plan)
+✓ No credit card needed
+
+════════════════════════════════════════════════════════════════════════════════
+
+COMMANDS CHEAT SHEET:
+
+Share via Docker Hub:
+  docker login
+  docker tag os161-env:latest yourname/os161-env:latest
+  docker push yourname/os161-env:latest
+
+Classmates receive it:
+  docker pull yourname/os161-env:latest
+  docker tag yourname/os161-env:latest os161-env:latest
+
+Save as file:
+  docker save os161-env:latest -o os161-env.tar.gz
+
+Load from file:
+  docker load -i os161-env.tar.gz
+
+════════════════════════════════════════════════════════════════════════════════
+
+Read full guide: HOW_TO_SHARE.md
+
+════════════════════════════════════════════════════════════════════════════════
