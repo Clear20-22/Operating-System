@@ -13,7 +13,7 @@ Start here based on your needs:
 
 ```bash
 # One-time setup (20-30 min)
-cd /Users/jubayerahmedsojib/Desktop/OS
+cd /path/to/workspace
 make setup
 
 # Daily workflow
@@ -58,22 +58,22 @@ sys161-*.tar              Simulator source (can delete after build)
 
 ## 🔄 Workflow Summary
 
-| Task | Command |
-|------|---------|
-| Initial setup | `make setup` |
-| Start work | `make up && make shell` |
-| Edit code | `nano os161-source/kern/...` (on your machine) |
-| Build ASST2 | `make build-asst2` |
-| Run kernel | `make run-kernel` |
-| Debug | `make shell` → `sys161 -d kernel`, GDB |
-| Stop work | `make down` |
+| Task          | Command                                        |
+| ------------- | ---------------------------------------------- |
+| Initial setup | `make setup`                                   |
+| Start work    | `make up && make shell`                        |
+| Edit code     | `nano os161-source/kern/...` (on your machine) |
+| Build ASST2   | `make build-asst2`                             |
+| Run kernel    | `make run-kernel`                              |
+| Debug         | `make shell` → `sys161 -d kernel`, GDB         |
+| Stop work     | `make down`                                    |
 
 ## 📝 Assignment Checklist
 
 Before submitting each assignment:
 
 - [ ] Code compiles without warnings
-- [ ] Kernel boots successfully  
+- [ ] Kernel boots successfully
 - [ ] All required tests pass
 - [ ] Code tested on student.cs (recommended)
 - [ ] No debug output in submission
@@ -150,6 +150,7 @@ make down
 ## 📊 Environment Details
 
 **Docker Image:** `os161-env:latest`
+
 - **Size:** 600-700MB
 - **Base OS:** Ubuntu 14.04
 - **Toolchain:** GCC 4.1.2 (MIPS cross-compiler)
@@ -157,6 +158,7 @@ make down
 - **OS/161:** Version 1.99.05
 
 **Development Path:**
+
 - **Source:** `os161-source/` (synced to container)
 - **Toolchain:** `/root/sys161/` (in container only)
 - **Build:** `/root/cs350-os161/` (in container)
@@ -164,7 +166,7 @@ make down
 ## 📌 Important Notes
 
 - **Don't delete:** Dockerfile, docker-compose.yml, os161-source/
-- **Can delete:** os161-*.tar files after build completes
+- **Can delete:** os161-\*.tar files after build completes
 - **Synced locally:** os161-source/ (your editable code)
 - **Container only:** Compiled kernel, build artifacts, toolchain
 

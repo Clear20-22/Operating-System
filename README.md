@@ -17,7 +17,7 @@
 ## 🚀 Initial Setup (One Time)
 
 ```bash
-cd /path/to/OS
+cd /path/to/workspace
 make setup
 ```
 

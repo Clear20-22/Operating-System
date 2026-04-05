@@ -19,7 +19,7 @@ assignments/
 ### 1. Setup Environment
 
 ```bash
-cd /Users/jubayerahmedsojib/Desktop/OS
+cd /path/to/workspace
 docker compose up -d
 docker compose exec os161 bash
 ```
@@ -73,18 +73,21 @@ OS/161 kernel [? for menu]: s       # Start shell
 ### 6. Debug Issues
 
 **Check for compilation errors:**
+
 ```bash
 cd /root/cs350-os161/os161-1.99/kern/compile/ASST0
 bmake 2>&1 | tee build.log
 ```
 
 **Check kernel output:**
+
 ```bash
 cd /root/cs350-os161
 sys161 kernel 2>&1 | tee kernel.log
 ```
 
 **Use GDB debugger:**
+
 ```bash
 # Terminal 1
 cd /root/cs350-os161
@@ -101,26 +104,31 @@ cs350-gdb kernel
 ## Assignment-Specific Tips
 
 ### ASST0 - Basic Kernel
+
 - Focus on understanding the codebase
 - Run existing tests: `?t` in sys161 menu
 - No code changes required for basic submission
 
 ### ASST1 - Thread System
+
 - Implement locks and condition variables
 - Test with `lt` (lock tests) in sys161
 - Common files: `kern/thread/`, `kern/synch/`
 
 ### ASST2 - Process Management
+
 - Implement fork, execv, waitpid syscalls
 - Test with process tests
 - Common files: `kern/proc/`, `kern/syscall/`
 
 ### ASST3 - Virtual Memory
+
 - Implement TLB management and page tables
 - Use DUMBVM as starting point
 - Common files: `kern/vm/`, `kern/arch/mips/`
 
 ### ASST4 - File System
+
 - Implement SFS (Simple File System)
 - Implement file syscalls
 - Common files: `kern/fs/`, `kern/vfs/`
@@ -168,6 +176,7 @@ Before submitting each assignment:
 ## File Locations
 
 **Your source code (editable locally):**
+
 ```
 os161-source/
 ├── kern/          # Kernel implementation
@@ -183,6 +192,7 @@ os161-source/
 ```
 
 **Inside container (read-only):**
+
 ```
 /root/sys161/tools/          # Compiled toolchain
 /root/cs350-os161/kernel     # Your built kernel
@@ -190,6 +200,7 @@ os161-source/
 ```
 
 **Assignment directories:**
+
 ```
 assignments/asst0/    # Your notes, test results, etc.
 assignments/asst1/
@@ -199,6 +210,7 @@ assignments/asst1/
 ## Troubleshooting Assignments
 
 **Kernel won't compile:**
+
 ```bash
 # Clean and rebuild
 cd /root/cs350-os161/os161-1.99/kern/compile/ASST2
@@ -208,6 +220,7 @@ bmake
 ```
 
 **Kernel panics on startup:**
+
 ```bash
 # Check for infinite loops in main()
 # Use GDB to debug early kernel code
@@ -215,6 +228,7 @@ sys161 -d kernel
 ```
 
 **Tests don't run:**
+
 ```bash
 # Verify kernel built correctly
 cd /root/cs350-os161
@@ -223,6 +237,7 @@ sys161 kernel
 ```
 
 **Compilation takes too long:**
+
 ```bash
 # Use parallel make
 cd /root/cs350-os161/os161-1.99/kern/compile/ASST2
@@ -232,6 +247,7 @@ bmake -j4  # Use 4 parallel jobs
 ## Getting Help
 
 1. **Check OS/161 man pages:**
+
    ```bash
    cat os161-source/man/syscall/fork.html  # View in browser
    ```
