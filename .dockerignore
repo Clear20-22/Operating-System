@@ -1,0 +1,19 @@
+# Keep build context minimal: this Dockerfile only needs os161 sources.
+*
+
+# Required for image build
+!Dockerfile
+!Dockerfile.slim
+!os161/
+!os161/**
+
+# Optional: keep compose file visible in context if you ever use compose build workflows
+!docker-compose.yml
+
+# Mac/editor noise (already covered by '*', kept for clarity)
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

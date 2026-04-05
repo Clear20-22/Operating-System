@@ -1,3 +1,0 @@
-S=..
-CPU=mipseb
-

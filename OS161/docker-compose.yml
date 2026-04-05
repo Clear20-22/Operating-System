@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  os161:
+    image: os161-env:latest
+    container_name: os161-dev
+    stdin_open: true
+    tty: true
+    environment:
+      - MAKESYSPATH=/root/sys161/tools/share/mk
+      - PATH=/root/sys161/bin:/root/sys161/tools/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      - OS161_HOME=/root/sys161
+      - TOOLDIR=/root/sys161/tools
+      - TERM=xterm-256color
+      - PAGER=less
+    working_dir: /root/cs350-os161
+    volumes:
+      # Mount source code for editing
+      - ./os161-source:/root/cs350-os161/os161-1.99:rw
+      # Mount assignments directory
+      - ./assignments:/assignments:rw
+      # Mount work directory for any temporary files
+      - ./os161-work:/work:rw
+    command: /bin/bash
+    cap_add:
+      - SYS_PTRACE
