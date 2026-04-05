@@ -17,6 +17,7 @@ OS/161 is an educational operating system used in university courses (notably at
 The Dockerfile uses a **two-stage build**:
 
 **Stage 1: Builder (linux/amd64 ubuntu:14.04)**
+
 - Downloads all OS/161 source tarballs
 - Installs build dependencies (gcc, make, bison, flex, texinfo, etc.)
 - Compiles:
@@ -25,10 +26,11 @@ The Dockerfile uses a **two-stage build**:
   - GDB 6.6+os161-2.0 (MIPS debugger)
   - bmake (build system) + mk files
   - sys161 1.99.06 (MIPS emulator)
-- Creates cs350-* symlinks for toolchain access
+- Creates cs350-\* symlinks for toolchain access
 - Intermediate size: ~1.5GB
 
 **Stage 2: Runtime (linux/amd64 ubuntu:14.04)**
+
 - Copies only compiled binaries and source from Stage 1
 - Installs minimal runtime dependencies (gcc/g++ for hostcompat compilation)
 - Removes all build tools and intermediate files
@@ -37,7 +39,7 @@ The Dockerfile uses a **two-stage build**:
 ## Directory Structure
 
 ```
-/Users/jubayerahmedsojib/Desktop/OS/
+/path/to/OS/
 ├── Dockerfile                      # Multi-stage build definition
 ├── docker-compose.yml              # Container orchestration
 ├── .dockerignore                   # Exclude files from build context
@@ -71,36 +73,38 @@ The Dockerfile uses a **two-stage build**:
 ### Step 1: Initial Setup (First Time Only)
 
 ```bash
-cd /Users/jubayerahmedsojib/Desktop/OS
+cd /path/to/OS
 bash setup.sh
 ```
 
 This script:
+
 1. Verifies Docker is installed
 2. Creates local directories (`os161-source/`, `os161-compile/`)
 3. Builds the Docker image (takes 20-30 minutes)
 
 **What happens during build:**
 
-| Step | Component | Command | Time | Output |
-|------|-----------|---------|------|--------|
-| 1 | Dependencies | `apt-get install build-essential...` | 1 min | 213MB layer |
-| 2 | Extract | `tar -xf *.tar` | 10s | Source files |
-| 3 | Binutils | `./configure && make && make install` | 2 min | 120MB layer |
-| 4 | GCC | `./configure && make && make install` | 7 min | 36.1MB layer |
-| 5 | GDB | `./configure && make && make install` | 3 min | 4.36MB layer |
-| 6 | bmake | `./boot-strap && install` | 1 min | 4.21MB layer |
-| 7 | cs350-* symlinks | `for i in mips-*; do ln -sf...` | <1s | Links created |
-| 8 | sys161 | `./configure && make && make install` | 1 min | 651KB |
-| 9 | Copy source | `cp -R os161-1.99 /root/cs350-os161/` | 1s | Source copied |
-| 10 | Strip binaries | `strip --strip-unneeded` | <1s | Size reduced |
-| 11 | Final image | `COPY --from=builder` | 3s | 600-700MB final |
+| Step | Component         | Command                               | Time  | Output          |
+| ---- | ----------------- | ------------------------------------- | ----- | --------------- |
+| 1    | Dependencies      | `apt-get install build-essential...`  | 1 min | 213MB layer     |
+| 2    | Extract           | `tar -xf *.tar`                       | 10s   | Source files    |
+| 3    | Binutils          | `./configure && make && make install` | 2 min | 120MB layer     |
+| 4    | GCC               | `./configure && make && make install` | 7 min | 36.1MB layer    |
+| 5    | GDB               | `./configure && make && make install` | 3 min | 4.36MB layer    |
+| 6    | bmake             | `./boot-strap && install`             | 1 min | 4.21MB layer    |
+| 7    | cs350-\* symlinks | `for i in mips-*; do ln -sf...`       | <1s   | Links created   |
+| 8    | sys161            | `./configure && make && make install` | 1 min | 651KB           |
+| 9    | Copy source       | `cp -R os161-1.99 /root/cs350-os161/` | 1s    | Source copied   |
+| 10   | Strip binaries    | `strip --strip-unneeded`              | <1s   | Size reduced    |
+| 11   | Final image       | `COPY --from=builder`                 | 3s    | 600-700MB final |
 
 **Total build time:** ~20-30 minutes
 
 ### Step 2: Extract Source Archives
 
 Your local machine already has the tar files:
+
 - `os161-1.99.05-UWF16.tar` — OS/161 source
 - `os161-binutils.tar` — Binutils source
 - `os161-gcc.tar` — GCC source
@@ -114,7 +118,7 @@ The Dockerfile extracts all of these during the builder stage.
 ### Step 3: Extract OS/161 Source to Local Directory
 
 ```bash
-cd /Users/jubayerahmedsojib/Desktop/OS
+cd /path/to/OS
 tar -xf os161-1.99.05-UWF16.tar -C os161-source/
 mv os161-source/os161-1.99/* os161-source/
 rmdir os161-source/os161-1.99
@@ -131,6 +135,7 @@ docker compose exec os161 bash  # Enter shell
 ```
 
 **docker-compose.yml configuration:**
+
 - Image: `os161-env:latest`
 - Container name: `os161-dev`
 - Working directory: `/root/cs350-os161`
@@ -149,12 +154,14 @@ cd ../compile
 ```
 
 This creates a kernel configuration directory (e.g., `ASST0`) with:
+
 - `Makefile` — Build rules
 - `autoconf.h` — Configuration header
 - `autoconf.c` — Configuration source
 - `files.mk` — File lists
 
 **Available configurations:**
+
 - `ASST0` — Basic kernel
 - `ASST1` — Thread system
 - `ASST2` — Process management
@@ -172,11 +179,13 @@ bmake install   # Install to /root/cs350-os161/kernel
 ```
 
 **What happens:**
+
 1. `bmake depend` — Scans source for header dependencies
 2. `bmake` — Compiles all object files and links kernel binary
 3. `bmake install` — Copies kernel to `/root/cs350-os161/kernel-ASST0` and creates symlink
 
 **Output:**
+
 ```
 cs350-size kernel
    text    data     bss     dec     hex filename
@@ -184,6 +193,7 @@ cs350-size kernel
 ```
 
 Size breakdown:
+
 - **text:** Code section (~196KB)
 - **data:** Initialized data (~528B)
 - **bss:** Uninitialized data (~7.8KB)
@@ -197,6 +207,7 @@ sys161 kernel
 ```
 
 **Expected output:**
+
 ```
 sys161: System/161 release 1.99.06, compiled Apr  5 2026 19:15:04
 
@@ -267,6 +278,7 @@ sys161 kernel
 ### Debug with GDB (Optional)
 
 **Terminal 1:**
+
 ```bash
 docker compose exec os161 bash
 cd /root/cs350-os161
@@ -274,6 +286,7 @@ sys161 -d kernel        # Start in debug mode (port 9191)
 ```
 
 **Terminal 2:**
+
 ```bash
 docker compose exec os161 bash
 cs350-gdb kernel
@@ -286,6 +299,7 @@ cs350-gdb kernel
 ## Key Technologies Used
 
 ### Docker
+
 - **Multi-stage builds:** Reduces final image size by 60%
 - **Volume mounts:** Enables local code editing
 - **Environment variables:** Configures toolchain paths
@@ -294,6 +308,7 @@ cs350-gdb kernel
 ### OS/161 Components
 
 **MIPS Cross-Compiler Toolchain:**
+
 - `cs350-gcc` — Compiles C code to MIPS
 - `cs350-as` — Assembles MIPS assembly
 - `cs350-ld` — Links MIPS object files
@@ -301,10 +316,12 @@ cs350-gdb kernel
 - `cs350-ar`, `cs350-nm`, `cs350-objdump` — Other binary tools
 
 **Build System:**
+
 - `bmake` — Build Make variant used by OS/161
 - `mk` infrastructure — Shared build rules (~/tools/share/mk/)
 
 **sys161 Simulator:**
+
 - Emulates MIPS r3000 processor
 - Simulates hardware: disk, console, timer, random number generator
 - Supports debugging via GDB remote protocol
@@ -314,12 +331,13 @@ cs350-gdb kernel
 ### Dockerfile
 
 **Key sections:**
+
 1. **Stage 1 (builder):**
    - FROM ubuntu:14.04
    - Install build dependencies
    - Extract tar archives
    - Compile toolchain (steps 2-9 of original guide)
-   - Create cs350-* symlinks
+   - Create cs350-\* symlinks
    - Build sys161 simulator
    - Copy OS/161 source
 
@@ -332,6 +350,7 @@ cs350-gdb kernel
 ### docker-compose.yml
 
 Defines:
+
 - Service name: `os161`
 - Image: `os161-env:latest`
 - Volumes: Source code mount for editing
@@ -341,6 +360,7 @@ Defines:
 ### .dockerignore
 
 Excludes from build context:
+
 - `.git`, `.gitignore` — Git metadata
 - `*.log`, `*.tmp` — Temporary files
 - `README*`, `*.md` — Documentation
@@ -351,6 +371,7 @@ This keeps the build context small (~300KB instead of full git history).
 ### setup.sh
 
 Automated setup script that:
+
 1. Checks Docker is installed
 2. Creates local directories
 3. Builds image (if not already built)
@@ -359,6 +380,7 @@ Automated setup script that:
 ## Environment Variables
 
 **Set in Dockerfile:**
+
 ```bash
 OS161_HOME=/root/sys161          # Toolchain root
 TOOLDIR=/root/sys161/tools       # Compiled binaries directory
@@ -367,6 +389,7 @@ MAKESYSPATH=/root/sys161/tools/share/mk
 ```
 
 **Used during builds:**
+
 ```bash
 ./configure --prefix=$TOOLDIR --target=mips-harvard-os161
 make -j$(nproc)                  # Parallel build (nproc = CPU count)
@@ -377,13 +400,15 @@ make -j$(nproc)                  # Parallel build (nproc = CPU count)
 ### Why Multi-Stage?
 
 **Single-stage (what we avoided):**
+
 ```
-Base OS (229MB) + Build deps (213MB) + Binutils (120MB) + GCC (36MB) + 
-GDB (4MB) + bmake (4MB) + sys161 (1MB) + Source (3MB) + Artifacts (200MB+) 
+Base OS (229MB) + Build deps (213MB) + Binutils (120MB) + GCC (36MB) +
+GDB (4MB) + bmake (4MB) + sys161 (1MB) + Source (3MB) + Artifacts (200MB+)
 = ~800MB+ final
 ```
 
 **Multi-stage (what we did):**
+
 ```
 Stage 1: Compile everything (1.5GB)
 Stage 2: Copy only binaries to fresh OS (600-700MB final)
@@ -405,6 +430,7 @@ Stage 2: Copy only binaries to fresh OS (600-700MB final)
 **Symptom:** Build stops at GCC/GDB compilation
 
 **Solution:**
+
 ```bash
 docker build -t os161-env:latest . --no-cache
 ```
@@ -419,6 +445,7 @@ Docker Desktop → Preferences → Resources → Memory: 4GB recommended
 **Symptom:** `docker compose up` fails
 
 **Solution:**
+
 ```bash
 docker compose down
 docker compose up -d
@@ -430,6 +457,7 @@ docker compose logs os161  # View error logs
 **Symptom:** `sys161: Cannot open boot image kernel`
 
 **Solution:**
+
 ```bash
 cd /root/cs350-os161/os161-1.99/kern/compile/ASST0
 bmake
@@ -443,6 +471,7 @@ ls -lh kernel  # Verify symlink exists
 **Symptom:** Edit local file, but container doesn't see changes
 
 **Solution:**
+
 ```bash
 docker compose down
 docker compose up -d
@@ -454,6 +483,7 @@ docker compose up -d
 **Symptom:** "Permission denied" writing to `os161-source/`
 
 **Solution:**
+
 ```bash
 docker compose exec os161 bash -u root
 # Run as root inside container
@@ -491,18 +521,18 @@ cs350-gdb kernel
 
 This Docker setup implements all 10 steps from the official OS/161 installation guide:
 
-| Step | Original | Docker Implementation |
-|------|----------|----------------------|
-| 1 | Download | `tar -xf *.tar` in Dockerfile |
-| 2 | Build Binutils | `RUN cd binutils && ./configure && make` |
-| 3 | Adjust PATH | `ENV PATH=/root/sys161/bin:...` |
-| 4 | Build GCC | `RUN cd gcc && ./configure && make` |
-| 5 | Build GDB | `RUN cd gdb && ./configure && make` |
-| 6 | Install bmake | `RUN cd bmake && ./boot-strap` |
-| 7 | Create cs350-* links | `RUN cd $TOOLDIR/bin && sh -c 'for i...'` |
-| 8 | Build sys161 | `RUN cd sys161 && ./configure && make` |
-| 9 | Install OS/161 | `RUN cp -R os161-1.99 /root/cs350-os161/` |
-| 10 | Configure & Build | User does: `./config ASST0 && bmake` |
+| Step | Original              | Docker Implementation                     |
+| ---- | --------------------- | ----------------------------------------- |
+| 1    | Download              | `tar -xf *.tar` in Dockerfile             |
+| 2    | Build Binutils        | `RUN cd binutils && ./configure && make`  |
+| 3    | Adjust PATH           | `ENV PATH=/root/sys161/bin:...`           |
+| 4    | Build GCC             | `RUN cd gcc && ./configure && make`       |
+| 5    | Build GDB             | `RUN cd gdb && ./configure && make`       |
+| 6    | Install bmake         | `RUN cd bmake && ./boot-strap`            |
+| 7    | Create cs350-\* links | `RUN cd $TOOLDIR/bin && sh -c 'for i...'` |
+| 8    | Build sys161          | `RUN cd sys161 && ./configure && make`    |
+| 9    | Install OS/161        | `RUN cp -R os161-1.99 /root/cs350-os161/` |
+| 10   | Configure & Build     | User does: `./config ASST0 && bmake`      |
 
 ## Performance Metrics
 
@@ -529,11 +559,13 @@ Desktop/OS/
 ## Next Steps
 
 1. **Modify kernel code:**
+
    ```bash
    nano os161-source/kern/main/main.c
    ```
 
 2. **Rebuild kernel:**
+
    ```bash
    docker compose exec os161 bash
    cd /root/cs350-os161/os161-1.99/kern/compile/ASST0
@@ -541,6 +573,7 @@ Desktop/OS/
    ```
 
 3. **Test changes:**
+
    ```bash
    cd /root/cs350-os161
    sys161 kernel

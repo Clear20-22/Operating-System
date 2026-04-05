@@ -17,11 +17,12 @@
 ## 🚀 Initial Setup (One Time)
 
 ```bash
-cd /Users/jubayerahmedsojib/Desktop/OS
+cd /path/to/OS
 make setup
 ```
 
 This will:
+
 - [ ] Extract OS/161 source to os161-source/
 - [ ] Build Docker image (20-30 minutes)
 - [ ] Create assignment directories
@@ -131,19 +132,19 @@ OS/
 
 ## 🛠️ Key Commands to Remember
 
-| What You Want | Command |
-|---------------|---------|
-| One-time setup | `make setup` |
-| Start work | `make up && make shell` |
-| Stop work | `make down` |
-| Build ASST0 | `make build-asst0` |
-| Build ASST1 | `make build-asst1` |
-| Build ASST2 | `make build-asst2` |
-| Build ASST3 | `make build-asst3` |
-| Build ASST4 | `make build-asst4` |
-| Build ASST5 | `make build-asst5` |
-| Test kernel | `make run-kernel` |
-| See all commands | `make help` |
+| What You Want    | Command                 |
+| ---------------- | ----------------------- |
+| One-time setup   | `make setup`            |
+| Start work       | `make up && make shell` |
+| Stop work        | `make down`             |
+| Build ASST0      | `make build-asst0`      |
+| Build ASST1      | `make build-asst1`      |
+| Build ASST2      | `make build-asst2`      |
+| Build ASST3      | `make build-asst3`      |
+| Build ASST4      | `make build-asst4`      |
+| Build ASST5      | `make build-asst5`      |
+| Test kernel      | `make run-kernel`       |
+| See all commands | `make help`             |
 
 ## 💾 Backup Your Work
 
@@ -163,12 +164,14 @@ git commit -am "ASST2: Before implementing syscalls"
 ## 🐛 If Something Goes Wrong
 
 **Problem:** Docker image won't build
+
 ```bash
 make clean-image
 make setup
 ```
 
 **Problem:** Changes not showing in container
+
 ```bash
 make down
 make up
@@ -176,6 +179,7 @@ make up
 ```
 
 **Problem:** Kernel won't compile
+
 ```bash
 make shell
 cd /root/cs350-os161/os161-1.99/kern
@@ -184,6 +188,7 @@ make build-asst2
 ```
 
 **Problem:** Can't remember commands
+
 ```bash
 make help
 ```
@@ -191,7 +196,7 @@ make help
 ## ✨ Pro Tips
 
 - **Use Makefile** → Much faster than typing full commands
-- **Edit locally** → os161-source/ syncs automatically  
+- **Edit locally** → os161-source/ syncs automatically
 - **Test often** → Don't wait until the end
 - **Use GDB** → Debug properly, not with printf
 - **Commit code** → Save working versions
@@ -200,13 +205,13 @@ make help
 
 ## 📊 Time Estimates
 
-| Task | Time |
-|------|------|
-| Initial setup | 30-40 min |
-| Learn the system | 15 min |
-| First test | 5 min |
-| **Per assignment** | 40-120 min |
-| Daily build/test cycle | 1-5 min |
+| Task                   | Time       |
+| ---------------------- | ---------- |
+| Initial setup          | 30-40 min  |
+| Learn the system       | 15 min     |
+| First test             | 5 min      |
+| **Per assignment**     | 40-120 min |
+| Daily build/test cycle | 1-5 min    |
 
 ## 🎓 Next Steps
 
@@ -221,34 +226,39 @@ make help
 ## 📞 Quick Help
 
 **Forgot how to start?**
+
 ```bash
 make help
 ```
 
 **Want to know commands?**
+
 ```bash
 make help
 ```
 
 **Need to edit code?**
+
 ```bash
 # On your machine (not in container)
 nano os161-source/kern/main/main.c
 ```
 
 **Want to build?**
+
 ```bash
 make build-asst2  # Replace 2 with your assignment
 ```
 
 **Want to test?**
+
 ```bash
 make run-kernel
 ```
 
 ---
 
-**You're all set!** Start with `make setup`. 
+**You're all set!** Start with `make setup`.
 
 After that, check [QUICK_START.md](QUICK_START.md) for daily workflow.
 

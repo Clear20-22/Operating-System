@@ -5,6 +5,7 @@ This Dockerfile builds a complete OS/161 development environment from scratch, i
 ## Architecture
 
 **Multi-Stage Build:**
+
 - **Stage 1 (builder):** Downloads, extracts, and compiles everything (~1.5GB intermediate)
 - **Stage 2 (runtime):** Copies only compiled binaries and source to clean image (~800MB final)
 - Build dependencies automatically removed → 60% size reduction
@@ -12,18 +13,21 @@ This Dockerfile builds a complete OS/161 development environment from scratch, i
 ## What's Inside
 
 ✅ **Complete Toolchain (Steps 1-7)**
+
 - Binutils 2.17+os161-2.0.1 (assembler, linker, binary utilities)
 - GCC 4.1.2+os161-2.0 (MIPS cross-compiler)
 - GDB 6.6+os161-2.0 (debugger)
 - bmake + mk (build system)
-- cs350-* symlinks for all tools
+- cs350-\* symlinks for all tools
 
 ✅ **sys161 Simulator (Step 8)**
+
 - sys161-1.99.06 MIPS emulator
 - Configured as big-endian (mipseb)
 - Ready to run OS/161 kernels
 
 ✅ **OS/161 Source & Kernel (Step 9)**
+
 - os161-1.99 source code (editable in local directory)
 - Pre-configured with `./configure --ostree=/root/cs350-os161`
 - Pre-built kernel at `/root/cs350-os161/kernel`
@@ -52,20 +56,23 @@ Local (Your Machine):
 ## Quick Start
 
 ### 1. Setup (First Time)
+
 ```bash
-cd /Users/jubayerahmedsojib/Desktop/OS
+cd /path/to/OS
 bash setup.sh
 ```
 
 This creates local directories and builds the image (~20-30 min).
 
 ### 2. Extract Your OS/161 Source
+
 ```bash
 # Copy your os161-1.99 directory contents to os161-source/
 cp -r your_os161_source/* os161-source/
 ```
 
 ### 3. Start Development
+
 ```bash
 # Start container in background
 docker compose up -d
@@ -88,6 +95,7 @@ sys161 kernel
 ```
 
 ### 4. Stop When Done
+
 ```bash
 docker compose down
 ```
@@ -95,6 +103,7 @@ docker compose down
 ## Development Workflow (Editable Local Files)
 
 ### Edit Code Locally
+
 ```bash
 # Your local machine
 nano os161-source/kern/main/main.c
@@ -102,6 +111,7 @@ nano os161-source/kern/main/main.c
 ```
 
 ### Build in Container
+
 ```bash
 docker compose exec os161 bash
 cd /root/cs350-os161/compile
@@ -111,6 +121,7 @@ sys161 kernel
 ```
 
 ### Output Files in Local Directory
+
 ```bash
 # Compiled kernel is also in:
 ls -lh os161-compile/
@@ -119,6 +130,7 @@ ls -lh os161-compile/
 ## Quick Commands
 
 ### Run Pre-Built Kernel (No Editing)
+
 ```bash
 docker compose up -d
 docker compose exec os161 sys161 kernel
@@ -127,6 +139,7 @@ docker compose down
 ```
 
 ### Verify Tools
+
 ```bash
 docker compose exec os161 bash -c "\
   echo 'GCC:' && cs350-gcc --version && \
@@ -136,6 +149,7 @@ docker compose exec os161 bash -c "\
 ```
 
 ### Interactive Development
+
 ```bash
 docker compose up -d
 docker compose exec os161 bash
@@ -153,6 +167,7 @@ docker compose down
 ```
 
 ### Debug with GDB (Two Terminals)
+
 ```bash
 # Terminal 1
 docker compose exec os161 bash
@@ -168,14 +183,15 @@ docker compose exec os161 cs350-gdb kernel
 
 ## Multi-Stage Build Benefits
 
-| Aspect | Single-Stage | Multi-Stage (Used Here) |
-|--------|-------------|------------------------|
-| **Build time** | Slow (no cache reuse) | Fast (caches each layer) |
-| **Final size** | 2GB+ | ~800MB |
-| **Build deps included** | Yes (~500MB) | No (removed) |
-| **Rebuildable** | Yes | Yes (keep source) |
+| Aspect                  | Single-Stage          | Multi-Stage (Used Here)  |
+| ----------------------- | --------------------- | ------------------------ |
+| **Build time**          | Slow (no cache reuse) | Fast (caches each layer) |
+| **Final size**          | 2GB+                  | ~800MB                   |
+| **Build deps included** | Yes (~500MB)          | No (removed)             |
+| **Rebuildable**         | Yes                   | Yes (keep source)        |
 
 **Why Multi-Stage?**
+
 1. Stage 1 compiles everything with build tools
 2. Stage 2 copies only the binaries (build tools discarded)
 3. Reduces image from 2GB → 800MB
@@ -185,11 +201,12 @@ docker compose exec os161 cs350-gdb kernel
 
 ```yaml
 volumes:
-  - ./os161-source:/root/cs350-os161/os161-1.99:rw  # Your source code
-  - ./os161-compile:/root/cs350-os161/compile:rw    # Compiled objects
+  - ./os161-source:/root/cs350-os161/os161-1.99:rw # Your source code
+  - ./os161-compile:/root/cs350-os161/compile:rw # Compiled objects
 ```
 
 **What this means:**
+
 - `./os161-source/` on your machine ↔ `/root/cs350-os161/os161-1.99/` in container
 - Changes in either location sync automatically
 - Files persist after container stops
@@ -228,18 +245,21 @@ sys161             # MIPS simulator
 ## Troubleshooting
 
 ### Build Fails
+
 ```bash
 # Increase Docker memory to 4GB, then retry:
 docker build --no-cache -t os161-env:latest .
 ```
 
 ### Permissions Error on Volume Mount
+
 ```bash
 # Run as root inside container
 docker compose exec os161 bash -u root
 ```
 
 ### Changes Not Syncing to Container
+
 ```bash
 # Restart the container
 docker compose down
@@ -248,6 +268,7 @@ docker compose exec os161 bash
 ```
 
 ### Can't Find Kernel
+
 ```bash
 docker compose exec os161 ls -lh /root/cs350-os161/kernel
 # Should show: -rwxr-xr-x kernel
