@@ -1,0 +1,16 @@
+
+$(MYBUILDDIR)/dumpsfs.ho: \
+ dumpsfs.c \
+ $(INSTALLTOP)/hostinclude/err.h \
+ ../mksfs/support.h \
+ $(INSTALLTOP)/hostinclude/kern/sfs.h \
+ $(INSTALLTOP)/hostinclude/hostcompat.h \
+ ../mksfs/disk.h
+$(MYBUILDDIR)/disk.ho: \
+ ../mksfs/disk.c \
+ $(INSTALLTOP)/hostinclude/err.h \
+ ../mksfs/support.h \
+ ../mksfs/disk.h
+$(MYBUILDDIR)/support.ho: \
+ ../mksfs/support.c
+

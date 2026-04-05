@@ -1,0 +1,6 @@
+
+$(MYBUILDDIR)/hash.ho: \
+ hash.c \
+ $(INSTALLTOP)/hostinclude/err.h \
+ $(INSTALLTOP)/hostinclude/hostcompat.h
+
