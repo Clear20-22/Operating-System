@@ -85,6 +85,9 @@ RUN cd /workspace/sys161-1.99.06 && \
 RUN mkdir -p /root/cs350-os161 && \
     cp -R /workspace/os161-1.99 /root/cs350-os161/
 
+# Step 10: Create directory for learning programs
+RUN mkdir -p /root/learning-programs
+
 # Strip binaries to reduce size
 RUN find "$OS161_HOME" "$TOOLDIR" -type f -executable \( -name "mips-*" -o -name "bmake" -o -name "sys161*" -o -name "gdb*" -o -name "hub161*" -o -name "stat161*" -o -name "trace161*" \) \
     -exec strip --strip-unneeded {} + 2>/dev/null || true
@@ -104,11 +107,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libncurses5 zlib1g gawk ca-certificates \
     perl python vim nano \
     build-essential gcc g++ \
+    libreadline-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy compiled toolchain and OS/161 source from builder
 COPY --from=builder /root/sys161 /root/sys161
 COPY --from=builder /root/cs350-os161 /root/cs350-os161
+COPY --from=builder /root/learning-programs /root/learning-programs
 
 WORKDIR /root/cs350-os161
 CMD ["/bin/bash"]

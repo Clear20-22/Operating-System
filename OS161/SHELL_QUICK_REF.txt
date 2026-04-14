@@ -1,0 +1,78 @@
+# Quick Shell Compilation & Run
+
+## One-Line Setup
+
+```bash
+# Inside container
+cd /root/learning-programs
+gcc shell.c -lreadline -o shell && ./shell
+```
+
+## Commands to Try
+
+```bash
+>>> ls                          # List files
+>>> pwd                         # Current directory
+>>> cd /tmp                     # Change directory
+>>> echo "Hello"               # Print text
+>>> ls | grep "shell"          # Pipe example
+>>> help                       # Show help
+>>> hello                      # Greet user
+>>> exit                       # Quit shell
+```
+
+## System Calls Demonstrated
+
+| Call | What Happens |
+|------|-------------|
+| `fork()` | New process created |
+| `execvp()` | Process runs command |
+| `wait()` | Parent waits for child |
+| `pipe()` | Create data pipe |
+| `dup2()` | Redirect I/O |
+
+## Features
+
+✅ Command history (arrow keys)
+✅ Tab completion
+✅ Pipe support (`|`)
+✅ Built-in commands
+✅ Directory tracking
+✅ Error handling
+
+## Built-in Commands
+
+- `cd` - Change directory
+- `exit` - Exit shell
+- `help` - Show help
+- `hello` - Greet user
+
+## Learning Value
+
+- Understand shell architecture
+- Learn about process management
+- See pipe implementation
+- Learn command parsing
+- Understand I/O redirection fundamentals
+
+## Compile Flags
+
+- `-lreadline` - Link readline library (needed for history/autocomplete)
+- `-g` - Add debug symbols for GDB
+- `-o shell` - Name output executable
+
+## Common Issues
+
+| Error | Fix |
+|-------|-----|
+| "readline.h: No such file" | `libreadline-dev` already installed |
+| "command not found" | Command doesn't exist in container |
+| "Pipe failed" | Rare, usually system limit |
+
+---
+
+**File location:** `/root/learning-programs/shell.c`
+
+**Inside Docker:** `docker compose exec -it os161 bash`
+
+**Then:** `cd /root/learning-programs && gcc shell.c -lreadline -o shell && ./shell`
