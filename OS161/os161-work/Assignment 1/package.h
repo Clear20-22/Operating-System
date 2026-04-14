@@ -1,6 +1,7 @@
 #ifndef PACKAGE_H
 #define PACKAGE_H
 
+#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>

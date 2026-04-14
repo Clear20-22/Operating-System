@@ -24,6 +24,8 @@ In this implementation, the shell supports:
 - `cat`
 - `echo`
 - external programs using `fork()` + `execvp()`
+- I/O redirection: `<`, `>`, `>>`
+- background execution: `&`
 
 ---
 
@@ -49,11 +51,12 @@ The program works like this:
 3. It prints the welcome banner using `greatings()`.
 4. It enters the interactive shell loop using `shell()`.
 5. The shell reads a line from the user.
-6. The input is split into tokens.
-7. The shell checks whether the command is built-in.
-8. If it is built-in, the matching function runs.
-9. If not, the shell tries to launch an external program.
-10. When the user types `exit`, `goodbye()` runs and the shell stops.
+6. The input is tokenized (supports special tokens like `<`, `>`, `>>`, `&`).
+7. Redirection/background are parsed and validated.
+8. The shell checks whether the command is built-in or manually implemented.
+9. If it is internal, the matching function runs (optionally in a child if redirection/background is used).
+10. If not, the shell launches an external program with `fork()` + `execvp()`.
+11. When the user types `exit`, `goodbye()` runs and the shell stops.
 
 ---
 
@@ -166,56 +169,62 @@ This is the main interactive loop.
 
 What it does:
 
-- prints the prompt
+- prints a colored prompt symbol (`❯`) based on the last command status
 - reads a command with `fgets()`
 - removes the newline character
 - ignores empty input
-- tokenizes the command
+- tokenizes the command (including `<`, `>`, `>>`, `&`)
 - checks for `exit`
-- dispatches built-in commands
+- dispatches built-in/manual commands
 - falls back to external execution if needed
+- supports basic redirection and background execution
 
 Why it matters:
 
 - This is the core of a shell.
 - It demonstrates the command cycle: read, parse, decide, execute.
 
-#### `parse_command(char *line, char **argv, int max_args)`
+#### `tokenize(const char *line, char *storage, size_t storage_len, char **tokens, int max_tokens)`
 
-This function splits the user input into words.
+This function performs a small custom tokenizer.
 
 What it does:
 
-- uses `strtok()` to break the line on spaces and tabs
-- stores pointers to each token in `argv`
-- returns the argument count
+- splits on spaces/tabs
+- treats `<`, `>`, `>>`, `&` as their own tokens
+- writes tokens into a separate buffer (`storage`) so parsing does not get confused by later modifications
+- returns the token count
 
 Example:
 
 ```text
-cp file1.txt file2.txt
+echo hello > out.txt
 ```
 
 Becomes:
 
-- `argv[0] = "cp"`
-- `argv[1] = "file1.txt"`
-- `argv[2] = "file2.txt"`
+- `tokens = ["echo", "hello", ">", "out.txt", NULL]`
 
 Teaching point:
 
 - This is basic command-line parsing.
 - A shell must convert raw text into structured arguments before execution.
 
-#### `run_builtin_or_manual(int argc, char **argv)`
+Limitations (intentional for Assignment 1):
 
-This function checks whether the command is built-in.
+- no quoting support (so `echo "hello world"` is treated as two arguments)
+- no pipes (`|`) yet (prints a clear error message)
+
+#### `dispatch_command(struct parsed_cmd *cmd)`
+
+This function is the main command router.
 
 What it does:
 
-- handles `help`
-- dispatches `pwd`, `ls`, `cd`, `mkdir`, `touch`, `rm`, `cp`, `mv`, `cat`, and `echo`
-- returns `-2` if the command is not built-in
+- routes built-in/manual commands (`cd`, `echo`, `pwd`, `ls`, ...)
+- runs `cd` in the parent (because it must change the shell’s directory)
+- if redirection/background is used with a manual command, it runs that command in a child process so `dup2()` can be applied safely
+- falls back to external execution for unknown commands
 
 Teaching point:
 
@@ -243,10 +252,11 @@ Lists files in a directory.
 
 What it does:
 
-- accepts zero or one path argument
+- accepts an optional directory argument
+- supports a small subset of options: `-a`, `-l`, `-al`, `-la`
 - opens the directory using `opendir()`
 - iterates with `readdir()`
-- skips `.` and `..`
+- hides dotfiles by default (unless `-a` is used)
 - prints each directory entry name
 
 Teaching point:
@@ -347,7 +357,8 @@ Prints file contents to standard output.
 
 What it does:
 
-- opens each file read-only
+- if no filenames are given, reads from `stdin` and writes to `stdout`
+- otherwise opens each file read-only
 - reads data in chunks
 - writes the bytes to `STDOUT_FILENO`
 - handles partial writes correctly
@@ -388,15 +399,16 @@ Teaching point:
 - This shows reusable helper design.
 - It also teaches buffered file copying and permission handling.
 
-#### `exec_external(char **argv)`
+#### `exec_external(struct parsed_cmd *cmd)`
 
 Runs commands that are not built into the shell.
 
 What it does:
 
 - creates a child process with `fork()`
+- applies redirection with `open()` + `dup2()` (if requested)
 - the child calls `execvp()`
-- the parent waits using `waitpid()`
+- the parent waits using `waitpid()` unless the command ends with `&`
 - returns the child’s exit status
 
 Teaching point:
@@ -405,6 +417,7 @@ Teaching point:
 - `fork()` creates a new process.
 - `execvp()` replaces the child process image with another program.
 - `waitpid()` lets the parent wait for completion.
+- `dup2()` is the core syscall behind redirection.
 
 ---
 
@@ -483,8 +496,10 @@ This project teaches the following OS and systems-programming ideas:
 5. Directory handling with `opendir()`, `readdir()`, and `closedir()`
 6. Working directory control with `getcwd()` and `chdir()`
 7. File manipulation with `mkdir()`, `unlink()`, `rmdir()`, and `rename()`
-8. Shell parsing with `strtok()`
+8. Basic tokenization and parsing (manual tokenizer)
 9. Modular C design using separate source files and shared headers
+10. I/O redirection with `dup2()`
+11. Background execution + reaping with `waitpid(..., WNOHANG)`
 
 ---
 
@@ -496,7 +511,9 @@ Use the helper script:
 ./run.sh
 ```
 
-If you want to build manually, the current script compiles:
+`run.sh` runs `./shell` only when it detects an interactive terminal; otherwise it just builds.
+
+If you want to build manually:
 
 ```sh
 gcc shell.c commands.c shellTalk.c -o shell
@@ -510,13 +527,9 @@ Then run:
 
 ---
 
-## Example Session
+## Example Session (Sample)
 
 ```text
-=====================================================
-                 WELCOME TO OS161 SHELL
-=====================================================
-
 ❯ help
 
 Available commands:
@@ -537,6 +550,13 @@ Manually implemented commands:
 
 ❯ pwd
 /work/Assignment 1
+
+❯ echo hello > out.txt
+❯ cat < out.txt
+hello
+
+❯ sleep 1 &
+[bg] 12345
 
 ❯ exit
 The terminal ends, but the journey continues.
