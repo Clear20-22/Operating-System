@@ -1,403 +1,109 @@
-# OS161 Shell Assignment 1
+# Assignment 1: Custom Shell (C)
 
-A small Unix-like shell written in C for the OS161 assignment.  
-This README explains **what the program does**, **how it is structured**, **how each function works**, and **what OS ideas are being taught** by the code.
+This project implements a small custom shell in C for OS assignment work.
 
----
+Bangla summary: Ei shell ta keyboard theke command nei, parse kore, execute kore, terminal e output dekhay.
 
-## What This Project Is
+## 1) Implemented Requirements
 
-This project builds a simple shell program. A shell is a command-line interface that reads what the user types, decides what the command means, and then runs the requested action.
+### I. Basic Shell
 
-In this implementation, the shell supports:
+- Accepts user command input from keyboard (`fgets` loop)
+- Parses command into tokens/arguments
+- Executes command
+- Prints command output in terminal
 
-- `help`
-- `exit`
-- `pwd`
-- `ls`
+### II. Required Commands (Manually Implemented)
+
+- `pwd` - print current directory
+- `ls` - list directory entries (`-a`, `-l`, `-al`, `-la` supported)
+- `cd` - change directory (builtin)
+- `mkdir` - create directory
+- `touch` - create file
+- `rm` - remove file / empty directory
+- `cp` - copy file
+- `mv` - move/rename file
+- `cat` - show file content
+- `echo` - print text (builtin)
+
+### III. Built-in Commands
+
 - `cd`
-- `mkdir`
-- `touch`
-- `rm`
-- `cp`
-- `mv`
-- `cat`
 - `echo`
-- external programs using `fork()` + `execvp()`
+- `exit`
+
+### IV. Optional Enhancements Included
+
+- Command arguments support (example: `ls -l`)
+- Error handling for invalid command/invalid path/missing args
+- Continuous command execution loop
+
+### V. Bonus Features Included
+
 - I/O redirection: `<`, `>`, `>>`
-- background execution: `&`
+- Background execution: `&`
 
----
+## 2) System-Call Usage
 
-## Project Structure
+The shell does not rely on `system()` for command execution.
 
-| File          | Purpose                                                |
-| ------------- | ------------------------------------------------------ |
-| `shell.c`     | Program entry point. Starts the shell.                 |
-| `commands.c`  | Main command loop and all command execution logic.     |
-| `shellTalk.c` | Startup banner, goodbye message, and help text.        |
-| `function.h`  | Shared function declarations used across source files. |
-| `package.h`   | System headers needed by the shell code.               |
-| `run.sh`      | Build-and-run helper script.                           |
+It uses:
 
----
+- `fork()`
+- `execvp()`
+- `waitpid()`
+- file APIs (`open`, `read`, `write`, `close`, `dup2`, `mkdir`, `unlink`, `rename`, etc.)
 
-## High-Level Flow
+## 3) Source Files
 
-The program works like this:
+- `shell.c` - entry point (`main`)
+- `commands.c` - shell loop, parser, command handlers
+- `shellTalk.c` - banner/help/goodbye text
+- `function.h`, `package.h` - declarations and includes
 
-1. `main()` in `shell.c` starts the program.
-2. It seeds the random generator with `srand(time(NULL))`.
-3. It prints the welcome banner using `greatings()`.
-4. It enters the interactive shell loop using `shell()`.
-5. The shell reads a line from the user.
-6. The input is tokenized (supports special tokens like `<`, `>`, `>>`, `&`).
-7. Redirection/background are parsed and validated.
-8. The shell checks whether the command is built-in or manually implemented.
-9. If it is internal, the matching function runs (optionally in a child if redirection/background is used).
-10. If not, the shell launches an external program with `fork()` + `execvp()`.
-11. When the user types `exit`, `goodbye()` runs and the shell stops.
+## 4) How To Compile and Run
 
----
+### Option A: Using script
 
-## File-by-File Explanation
-
-### `shell.c`
-
-This file is intentionally small. It only contains `main()`.
-
-#### `main(void)`
-
-This is the entry point of the whole program.
-
-What it does:
-
-- initializes the random seed with the current time
-- prints the welcome screen
-- starts the shell loop
-- returns `0` when the program ends successfully
-
-Why this is good:
-
-- keeps the program entry point simple
-- separates startup logic from command logic
-- makes the code easier to maintain
-
----
-
-### `shellTalk.c`
-
-This file contains the user-facing text and presentation layer.
-
-#### `type_text(const char *text)`
-
-This is a helper function used only inside `shellTalk.c`.
-
-What it does:
-
-- prints one character at a time
-- waits a tiny amount between characters using `usleep(50000)`
-- creates a smooth typing effect
-
-Teaching point:
-
-- This shows how output formatting can be made interactive and user-friendly.
-- It is not an OS feature itself, but it improves the shell experience.
-
-#### `greatings(void)`
-
-This function prints the startup banner.
-
-What it does:
-
-- prints a welcome title
-- prints ASCII art
-- tells the user about `help` and `exit`
-
-Teaching point:
-
-- This demonstrates how a shell can provide a friendly interface before command execution begins.
-
-#### `goodbye(void)`
-
-This function prints the shutdown message when the user exits.
-
-What it does:
-
-- stores a list of goodbye quotes
-- picks one quote randomly with `rand()`
-- prints the quote using the typing effect
-- prints the final shutdown line
-
-Teaching point:
-
-- This demonstrates string arrays, random selection, and controlled output formatting.
-- It also shows how a shell can cleanly end a session.
-
-#### `help(void)`
-
-This function prints the command guide.
-
-What it does:
-
-- lists built-in shell commands
-- explains what each one does
-- tells the user that other commands can be run externally
-
-Teaching point:
-
-- A shell should be discoverable.
-- `help()` is a user assistance layer, not command execution logic.
-
----
-
-### `commands.c`
-
-This file contains the real shell engine.
-
-It handles:
-
-- reading user input
-- splitting the input into arguments
-- checking for built-in commands
-- running internal command functions
-- launching external programs
-
-#### `shell(void)`
-
-This is the main interactive loop.
-
-What it does:
-
-- prints a colored prompt symbol (`❯`) based on the last command status
-- reads a command with `fgets()`
-- removes the newline character
-- ignores empty input
-- tokenizes the command (including `<`, `>`, `>>`, `&`)
-- checks for `exit`
-- dispatches built-in/manual commands
-- falls back to external execution if needed
-- supports basic redirection and background execution
-
-Why it matters:
-
-- This is the core of a shell.
-- It demonstrates the command cycle: read, parse, decide, execute.
-
-#### `tokenize(const char *line, char *storage, size_t storage_len, char **tokens, int max_tokens)`
-
-This function performs a small custom tokenizer.
-
-What it does:
-
-- splits on spaces/tabs
-- treats `<`, `>`, `>>`, `&` as their own tokens
-- writes tokens into a separate buffer (`storage`) so parsing does not get confused by later modifications
-- returns the token count
-
-Example:
-
-```text
-echo hello > out.txt
+```sh
+sh run.sh
 ```
 
-Becomes:
-
-- `tokens = ["echo", "hello", ">", "out.txt", NULL]`
-
-Teaching point:
-
-- This is basic command-line parsing.
-- A shell must convert raw text into structured arguments before execution.
-
-Limitations (intentional for Assignment 1):
-
-- no quoting support (so `echo "hello world"` is treated as two arguments)
-- no pipes (`|`) yet (prints a clear error message)
-
-#### `dispatch_command(struct parsed_cmd *cmd)`
-
-This function is the main command router.
-
-What it does:
-
-- routes built-in/manual commands (`cd`, `echo`, `pwd`, `ls`, ...)
-- runs `cd` in the parent (because it must change the shell’s directory)
-- if redirection/background is used with a manual command, it runs that command in a child process so `dup2()` can be applied safely
-- falls back to external execution for unknown commands
-
-Teaching point:
-
-- This is a command router.
-- It maps command names to C functions.
-
-#### `cmd_pwd(int argc, char **argv)`
-
-Prints the current working directory.
-
-What it does:
-
-- calls `getcwd()`
-- prints the full path
-- uses `perror("pwd")` if the path cannot be retrieved
-
-Teaching point:
-
-- This shows how a program can ask the operating system for process context.
-- It demonstrates process working directory handling.
-
-#### `cmd_ls(int argc, char **argv)`
-
-Lists files in a directory.
-
-What it does:
-
-- accepts an optional directory argument
-- supports a small subset of options: `-a`, `-l`, `-al`, `-la`
-- opens the directory using `opendir()`
-- iterates with `readdir()`
-- hides dotfiles by default (unless `-a` is used)
-- prints each directory entry name
-
-Teaching point:
-
-- This demonstrates directory traversal.
-- It uses the file system API to inspect folder contents.
-
-#### `cmd_cd(int argc, char **argv)`
-
-Changes the current directory.
-
-What it does:
-
-- uses `HOME` when no directory is given
-- otherwise uses the supplied path
-- calls `chdir()` to move the process into the target directory
-
-Teaching point:
-
-- `cd` is a shell built-in because directory changes must happen in the shell process itself.
-- If `cd` were run in a child process, the parent shell would not change directories.
-
-#### `cmd_mkdir(int argc, char **argv)`
-
-Creates one or more directories.
-
-What it does:
-
-- loops through each directory name
-- calls `mkdir(path, 0777)`
-- reports errors individually
-
-Teaching point:
-
-- This shows batch processing and file-system creation calls.
-
-#### `cmd_touch(int argc, char **argv)`
-
-Creates empty files if they do not exist.
-
-What it does:
-
-- loops through file names
-- opens each file with `O_CREAT | O_WRONLY`
-- closes the file descriptor immediately
-
-Teaching point:
-
-- This demonstrates file creation through file descriptors.
-- `touch` is a simple example of open-and-close behavior.
-
-#### `cmd_rm(int argc, char **argv)`
-
-Removes files or empty directories.
-
-What it does:
-
-- tries `unlink()` first for files
-- if that fails, tries `rmdir()` for directories
-- reports errors if both fail
-
-Teaching point:
-
-- This shows the difference between file removal and directory removal.
-
-#### `cmd_cp(int argc, char **argv)`
-
-Copies a file.
-
-What it does:
-
-- validates that exactly two paths are given
-- calls `copy_file(src, dst)`
-
-Teaching point:
-
-- The command function stays small and delegates actual work to a helper.
-- That keeps code clean and readable.
-
-#### `cmd_mv(int argc, char **argv)`
-
-Moves or renames a file.
-
-What it does:
-
-- first tries `rename()`
-- if the rename fails because of a cross-device move, it falls back to copy + delete
-- removes the source after successful copy
-
-Teaching point:
-
-- This demonstrates robust fallback logic.
-- `mv` is not just renaming in all cases; sometimes it must copy across file systems.
-
-#### `cmd_cat(int argc, char **argv)`
-
-Prints file contents to standard output.
-
-What it does:
-
-- if no filenames are given, reads from `stdin` and writes to `stdout`
-- otherwise opens each file read-only
-- reads data in chunks
-- writes the bytes to `STDOUT_FILENO`
-- handles partial writes correctly
-
-Teaching point:
-
-- This is a strong example of low-level stream I/O.
-- It teaches why read/write loops matter in systems programming.
-
-#### `cmd_echo(int argc, char **argv)`
-
-Prints its arguments separated by spaces.
-
-What it does:
-
-- loops over each argument after the command name
-- prints them with spaces
-- adds a newline at the end
-
-Teaching point:
-
-- This demonstrates straightforward argument processing and output formatting.
-
-#### `copy_file(const char *src, const char *dst)`
-
-Helper used by `cp` and `mv`.
-
-What it does:
-
-- opens the source file
-- gets file metadata with `fstat()`
-- creates the destination file with similar permissions
-- reads and writes data in buffered chunks
-- preserves permission bits from the source
-
-Teaching point:
-
-- This shows reusable helper design.
-- It also teaches buffered file copying and permission handling.
+### Option B: Manual compile
+
+```sh
+gcc shell.c commands.c shellTalk.c -o shell
+./shell
+```
+
+## 5) Sample Commands To Test
+
+```sh
+pwd
+ls -l
+mkdir demo
+cd demo
+touch a.txt
+echo hello world > a.txt
+cat a.txt
+cp a.txt b.txt
+mv b.txt c.txt
+rm c.txt
+cd ..
+rm demo
+exit
+```
+
+## 6) Deliverables Checklist
+
+- [x] C source code file(s) (`.c`)
+- [x] Shell script for compile/run (`run.sh`)
+- [x] README with compile/run/features
+
+## 7) Notes
+
+- `cd` is implemented as builtin so directory change persists in the shell process.
+- External commands are supported through `fork + execvp` when command is not one of the implemented built-ins/manual commands.
 
 #### `exec_external(struct parsed_cmd *cmd)`
 
