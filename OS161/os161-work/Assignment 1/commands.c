@@ -1,4 +1,8 @@
 #include "package.h"
+#include <grp.h>
+#include <limits.h>
+#include <pwd.h>
+#include <sys/xattr.h>
 
 #define MAX_LINE 1024
 #define MAX_ARGS 64
@@ -14,6 +18,12 @@ struct parsed_cmd
     int background;
 };
 
+struct ls_entry
+{
+    char *name;
+    struct stat st;
+};
+
 static int tokenize(const char *line, char *storage, size_t storage_len, char **tokens, int max_tokens);
 static int parse_tokens(int ntok, char **tokens, struct parsed_cmd *cmd);
 static void print_prompt(int last_status);
@@ -22,6 +32,9 @@ static int dispatch_command(struct parsed_cmd *cmd);
 static int run_child_and_wait(struct parsed_cmd *cmd, int (*fn)(int, char **));
 static int exec_external(struct parsed_cmd *cmd);
 static int apply_redirections(struct parsed_cmd *cmd);
+static int ls_entry_cmp(const void *a, const void *b);
+static void format_mode(mode_t mode, char out[11]);
+static void format_mtime(time_t mtime, char out[32], size_t outsz);
 
 static int cmd_pwd(int argc, char **argv);
 static int cmd_ls(int argc, char **argv);
@@ -341,25 +354,30 @@ static int cmd_ls(int argc, char **argv)
     int long_format = 0;
     DIR *dir;
     struct dirent *entry;
+    struct ls_entry *entries = NULL;
+    size_t nentries = 0;
+    size_t cap = 0;
+    long long total_blocks = 0;
     int i;
 
     for (i = 1; i < argc; i++)
     {
-        if (argv[i][0] != '-')
+        int k;
+
+        if (argv[i][0] != '-' || argv[i][1] == '\0')
             break;
-        if (strcmp(argv[i], "-a") == 0)
-            show_all = 1;
-        else if (strcmp(argv[i], "-l") == 0)
-            long_format = 1;
-        else if (strcmp(argv[i], "-al") == 0 || strcmp(argv[i], "-la") == 0)
+
+        for (k = 1; argv[i][k] != '\0'; k++)
         {
-            show_all = 1;
-            long_format = 1;
-        }
-        else
-        {
-            fprintf(stderr, "ls: unsupported option '%s'\n", argv[i]);
-            return 1;
+            if (argv[i][k] == 'a')
+                show_all = 1;
+            else if (argv[i][k] == 'l')
+                long_format = 1;
+            else
+            {
+                fprintf(stderr, "ls: unsupported option '-%c'\n", argv[i][k]);
+                return 1;
+            }
         }
     }
 
@@ -381,7 +399,9 @@ static int cmd_ls(int argc, char **argv)
     while ((entry = readdir(dir)) != NULL)
     {
         struct stat st;
-        char fullpath[1024];
+        char fullpath[PATH_MAX];
+        size_t name_len;
+        char *name_copy;
         int is_dot = (entry->d_name[0] == '.');
 
         if (!show_all)
@@ -392,12 +412,6 @@ static int cmd_ls(int argc, char **argv)
                 continue;
         }
 
-        if (!long_format)
-        {
-            printf("%s\n", entry->d_name);
-            continue;
-        }
-
         if (snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name) >= (int)sizeof(fullpath))
         {
             fprintf(stderr, "ls: path too long\n");
@@ -405,26 +419,180 @@ static int cmd_ls(int argc, char **argv)
             return 1;
         }
 
-        if (stat(fullpath, &st) != 0)
+        if (lstat(fullpath, &st) != 0)
         {
             perror("ls");
             closedir(dir);
             return 1;
         }
 
+        if (nentries == cap)
         {
-            char type = '-';
-            if (S_ISDIR(st.st_mode))
-                type = 'd';
-            else if (S_ISLNK(st.st_mode))
-                type = 'l';
-
-            printf("%c %9lld %s\n", type, (long long)st.st_size, entry->d_name);
+            size_t new_cap = (cap == 0) ? 32 : cap * 2;
+            struct ls_entry *tmp = (struct ls_entry *)realloc(entries, new_cap * sizeof(*entries));
+            if (tmp == NULL)
+            {
+                fprintf(stderr, "ls: out of memory\n");
+                closedir(dir);
+                free(entries);
+                return 1;
+            }
+            entries = tmp;
+            cap = new_cap;
         }
+
+        name_len = strlen(entry->d_name);
+        name_copy = (char *)malloc(name_len + 1);
+        if (name_copy == NULL)
+        {
+            fprintf(stderr, "ls: out of memory\n");
+            closedir(dir);
+            for (i = 0; i < (int)nentries; i++)
+                free(entries[i].name);
+            free(entries);
+            return 1;
+        }
+        memcpy(name_copy, entry->d_name, name_len + 1);
+
+        entries[nentries].name = name_copy;
+        entries[nentries].st = st;
+        nentries++;
+        total_blocks += (long long)st.st_blocks;
     }
 
     closedir(dir);
+
+    qsort(entries, nentries, sizeof(*entries), ls_entry_cmp);
+
+    if (long_format)
+        printf("total %lld\n", total_blocks);
+
+    for (i = 0; i < (int)nentries; i++)
+    {
+        if (!long_format)
+        {
+            printf("%s\n", entries[i].name);
+        }
+        else
+        {
+            char mode[11];
+            char tbuf[32];
+            char attr_marker = ' ';
+            struct passwd *pw = getpwuid(entries[i].st.st_uid);
+            struct group *gr = getgrgid(entries[i].st.st_gid);
+            const char *owner = (pw != NULL) ? pw->pw_name : "unknown";
+            const char *group = (gr != NULL) ? gr->gr_name : "unknown";
+
+            format_mode(entries[i].st.st_mode, mode);
+            format_mtime(entries[i].st.st_mtime, tbuf, sizeof(tbuf));
+
+            {
+                char fullpath[PATH_MAX];
+                if (snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entries[i].name) < (int)sizeof(fullpath))
+                {
+                    ssize_t xsz = listxattr(fullpath, NULL, 0, XATTR_NOFOLLOW);
+                    if (xsz > 0)
+                        attr_marker = '@';
+                }
+            }
+
+            printf("%s%c %2lu %-16s %-16s %9lld %s %s",
+                   mode,
+                   attr_marker,
+                   (unsigned long)entries[i].st.st_nlink,
+                   owner,
+                   group,
+                   (long long)entries[i].st.st_size,
+                   tbuf,
+                   entries[i].name);
+
+            if (S_ISLNK(entries[i].st.st_mode))
+            {
+                char fullpath[PATH_MAX];
+                char target[PATH_MAX];
+                ssize_t n;
+
+                if (snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entries[i].name) < (int)sizeof(fullpath))
+                {
+                    n = readlink(fullpath, target, sizeof(target) - 1);
+                    if (n >= 0)
+                    {
+                        target[n] = '\0';
+                        printf(" -> %s", target);
+                    }
+                }
+            }
+
+            printf("\n");
+        }
+    }
+
+    for (i = 0; i < (int)nentries; i++)
+        free(entries[i].name);
+    free(entries);
+
     return 0;
+}
+
+static int ls_entry_cmp(const void *a, const void *b)
+{
+    const struct ls_entry *ea = (const struct ls_entry *)a;
+    const struct ls_entry *eb = (const struct ls_entry *)b;
+    return strcmp(ea->name, eb->name);
+}
+
+static void format_mode(mode_t mode, char out[11])
+{
+    out[0] = S_ISDIR(mode) ? 'd' : S_ISLNK(mode) ? 'l'
+                               : S_ISCHR(mode)   ? 'c'
+                               : S_ISBLK(mode)   ? 'b'
+                               : S_ISFIFO(mode)  ? 'p'
+                               : S_ISSOCK(mode)  ? 's'
+                                                 : '-';
+
+    out[1] = (mode & S_IRUSR) ? 'r' : '-';
+    out[2] = (mode & S_IWUSR) ? 'w' : '-';
+    out[3] = (mode & S_IXUSR) ? 'x' : '-';
+    out[4] = (mode & S_IRGRP) ? 'r' : '-';
+    out[5] = (mode & S_IWGRP) ? 'w' : '-';
+    out[6] = (mode & S_IXGRP) ? 'x' : '-';
+    out[7] = (mode & S_IROTH) ? 'r' : '-';
+    out[8] = (mode & S_IWOTH) ? 'w' : '-';
+    out[9] = (mode & S_IXOTH) ? 'x' : '-';
+
+    if (mode & S_ISUID)
+        out[3] = (out[3] == 'x') ? 's' : 'S';
+    if (mode & S_ISGID)
+        out[6] = (out[6] == 'x') ? 's' : 'S';
+    if (mode & S_ISVTX)
+        out[9] = (out[9] == 'x') ? 't' : 'T';
+
+    out[10] = '\0';
+}
+
+static void format_mtime(time_t mtime, char out[32], size_t outsz)
+{
+    time_t now = time(NULL);
+    struct tm tmv;
+    int use_year = 0;
+
+    if (localtime_r(&mtime, &tmv) == NULL)
+    {
+        snprintf(out, outsz, "???????? ????");
+        return;
+    }
+
+    if (now != (time_t)-1)
+    {
+        const time_t six_months = (time_t)(60 * 60 * 24 * 30 * 6);
+        if (mtime > now || now - mtime > six_months)
+            use_year = 1;
+    }
+
+    if (use_year)
+        strftime(out, outsz, "%b %e  %Y", &tmv);
+    else
+        strftime(out, outsz, "%b %e %H:%M", &tmv);
 }
 
 static int cmd_cd(int argc, char **argv)
