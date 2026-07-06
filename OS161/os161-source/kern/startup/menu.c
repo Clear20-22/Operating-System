@@ -46,6 +46,12 @@
 #include "opt-sfs.h"
 #include "opt-net.h"
 
+
+/* ASST1 functions */
+void math(void);
+void run_producerconsumer(void);
+void runbar(void);
+
 /*
  * In-kernel menu and command dispatcher.
  */
@@ -495,18 +501,23 @@ cmd_testmenu(int n, char **a)
 }
 
 static const char *mainmenu[] = {
-	"[?o] Operations menu                ",
-	"[?t] Tests menu                     ",
+    "[?o] Operations menu                ",
+    "[?t] Tests menu                     ",
 #if OPT_SYNCHPROBS
-	"[sp1] Whale Mating                  ",
+    "[sp1] Whale Mating                  ",
 #ifdef UW
-	"[sp2] Cat/mouse                     ",
-	"[sp3] Traffic                       ",
-#endif /* UW */
+    "[sp2] Cat/mouse                     ",
+    "[sp3] Traffic                       ",
 #endif
-	"[kh] Kernel heap stats              ",
-	"[q] Quit and shut down              ",
-	NULL
+#endif
+
+    "[1a] Math test                      ",
+    "[1b] Producer Consumer              ",
+    "[1c] Bar Simulation                 ",
+
+    "[kh] Kernel heap stats              ",
+    "[q] Quit and shut down              ",
+    NULL
 };
 
 static
@@ -559,6 +570,10 @@ static struct {
 #endif /* UW */
 #endif
 
+	/* ASST1 commands */
+	{ "1a", (int (*)(int,char**))math },
+	{ "1b", (int (*)(int,char**))run_producerconsumer },
+	{ "1c", (int (*)(int,char**))runbar },
 	/* stats */
 	{ "kh",         cmd_kheapstats },
 

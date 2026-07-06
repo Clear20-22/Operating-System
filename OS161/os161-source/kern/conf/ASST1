@@ -33,3 +33,10 @@ options synchprobs		# The synchronization problems for assignment 1
 # UW options for assignment 1
 # NOTE: A0 options are not used for subsequent assignments
 options A1    # use #if OPT_A1 to mark code for A1
+
+
+file    asst1/math.c
+file    asst1/producerconsumer.c
+file    asst1/producerconsumer_driver.c
+file    asst1/bar.c
+file    asst1/bar_driver.c
