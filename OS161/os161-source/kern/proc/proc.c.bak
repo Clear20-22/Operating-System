@@ -152,42 +152,16 @@ void
 proc_orphan_children(struct proc *p)
 {
         int i;
-        struct proc **to_destroy;
-        int ndestroy = 0;
 
         KASSERT(pid_lock != NULL);
-
-        /* Collected on the heap, not the stack -- MAX_PROC entries would
-         * overflow a kernel stack if declared as a local array. If the
-         * allocation fails we just skip the cleanup pass below; the
-         * affected zombies leak in that rare OOM case rather than
-         * crashing. */
-        to_destroy = kmalloc(MAX_PROC * sizeof(struct proc *));
-
         lock_acquire(pid_lock);
         for (i = 0; i < MAX_PROC; i++) {
                 if (pid_table[i] != NULL && pid_table[i] != (struct proc *)1
                     && pid_table[i]->parent == p) {
                         pid_table[i]->parent = NULL;
-                        /* An orphaned child that has ALREADY exited will
-                         * never be waitpid()'d now, since its parent is
-                         * gone -- it would become a permanent zombie.
-                         * Queue it for destruction once we've released
-                         * pid_lock (proc_destroy() calls pid_dealloc(),
-                         * which re-acquires pid_lock itself). */
-                        if (pid_table[i]->exited && to_destroy != NULL) {
-                                to_destroy[ndestroy++] = pid_table[i];
-                        }
                 }
         }
         lock_release(pid_lock);
-
-        if (to_destroy != NULL) {
-                for (i = 0; i < ndestroy; i++) {
-                        proc_destroy(to_destroy[i]);
-                }
-                kfree(to_destroy);
-        }
 }
 
 /*

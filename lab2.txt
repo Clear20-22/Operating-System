@@ -1,0 +1,169 @@
+# CS350 ASST2 — Command Reference & Viva Prep
+
+---
+
+## PART 1: Commands, mapped to each section of the assignment PDF
+
+### Section (pre-1): Kernel & user-level build setup
+```bash
+# Reconfigure and rebuild the kernel (do this before first build, and after adding new files)
+cd kern/conf
+./config ASST2
+cd ../compile/ASST2
+bmake depend
+bmake
+bmake install
+
+# Build user-level applications (top-level of the source tree)
+cd cs350-os161/os161-1.99
+bmake
+bmake install
+```
+
+### Section 1.1 / 1.2: Locks and Condition Variables
+No special build command beyond the standard kernel rebuild above. These live in:
+- `kern/include/synch.h` (interface)
+- `kern/thread/synch.c` (implementation)
+
+### Section 1.3: Testing locks and CVs
+```bash
+sys161 kernel "sy2;q"   # lock test — look for "Lock test done" with no failure messages
+sys161 kernel "sy3;q"   # condition variable test — read output, should look self-consistent
+```
+
+### Section 2 / 3: System calls (fork, getpid, waitpid, exit, execv)
+No standalone test commands per syscall — tested indirectly via user programs (below). Key files:
+- `kern/syscall/proc_syscalls.c` — handlers
+- `kern/arch/mips/syscall/syscall.c` — dispatcher + `enter_forked_process()`
+- `kern/proc/proc.c` — PID table, proc struct lifecycle
+- `kern/syscall/runprogram.c` — used by both `execv` and the kernel's `p` menu command
+
+### Section 3.2 / 3.3: execv and argument passing
+```bash
+# Test running a program directly (no args) from the kernel menu
+sys161 kernel "p testbin/argtest;q"
+
+# Test passing args to the very first process via the menu (uses runprogram)
+sys161 kernel "p testbin/palin hello world;q"
+```
+
+### Section 4: General testing
+```bash
+# Basic exit()-only test (no fork needed)
+sys161 kernel "p testbin/palin;q"
+
+# fork() + waitpid() stress test
+sys161 kernel "p testbin/forktest;q"
+
+# Randomized syscall stress test (not required, but useful for confidence)
+sys161 kernel "p testbin/randcall;q"
+```
+
+### Section 5: Submission
+```bash
+# Run from $HOME/cs350-os161 on the CSE server (NOT locally in Docker)
+cd ~/cs350-os161
+/u/cs350/bin/cs350_submit 2
+```
+- Only `os161-1.99/kern` is packaged, **excluding** `kern/compile`.
+- You can submit multiple times; only the last submission counts.
+- **Do a full clean rebuild immediately before submitting** — the PDF explicitly warns that a broken shared header can silently prevent user-level programs from compiling, and if they can't compile, they can't test your code.
+
+```bash
+# Full clean rebuild sequence before final submission
+cd ~/cs350-os161/os161-1.99
+bmake
+bmake install
+cd kern/compile/ASST2
+bmake depend
+bmake
+bmake install
+```
+
+---
+
+## PART 2: Viva Prep — Likely Questions & Strong Answers
+
+### On Locks
+**Q: Why were you told not to build locks on top of semaphores?**
+A: To force genuine understanding of the underlying primitives — spinlocks and thread blocking/waking — rather than just composing existing high-level tools. It also avoids hidden circular dependencies, since semaphores themselves may later be reimplemented in terms of locks in some designs.
+
+**Q: How does your lock avoid a race between checking "is it held" and "acquiring it"?**
+A: Explain your actual implementation — typically: a spinlock protects the lock's internal state (held-flag + owner), and a wait channel / thread_sleep is used to block when held, all inside the critical section guarded by the spinlock so no window exists for a race.
+
+### On Condition Variables
+**Q: Why must `cv_wait` release the associated lock before sleeping and reacquire it after waking?**
+A: If it didn't release the lock, no other thread could enter the critical section to change the condition and call `cv_signal`/`cv_broadcast` — guaranteed deadlock. Releasing atomically with going to sleep (from the CPU scheduler's perspective) avoids missed wakeups.
+
+### On fork()
+**Q: Walk me through what happens in your `sys_fork`.**
+A (matches your actual code):
+1. `proc_create_runprogram()` creates a new `proc` struct, allocates a fresh PID, sets `parent`/`ppid`.
+2. `as_copy()` duplicates the parent's address space (deep-copies each dumbvm region).
+3. The parent's trapframe is copied onto the heap (`kmalloc`) so the child thread has its own copy to modify.
+4. `thread_fork()` spins up a new kernel thread attached to the child proc, entering via `fork_forkentry()` → `enter_forked_process()`.
+5. `enter_forked_process()` sets `tf_v0 = 0` (child sees fork() return 0), advances `epc` past the syscall instruction, activates the address space, and calls `mips_usermode()`.
+6. The parent returns normally from `sys_fork` with the child's PID.
+
+**Q: Why does the child need its own copy of the trapframe rather than sharing the parent's?**
+A: The parent's trapframe lives on the parent's kernel stack and will be overwritten/destroyed once the parent's syscall returns. The child runs on a different kernel stack (its own thread), so it needs an independent copy that outlives the parent's return from `fork()`.
+
+**Q: What happens if `fork()` runs out of memory partway through?**
+A: Explain the cleanup chain in your code: if `as_copy` fails, `proc_destroy(child)` is called before returning `ENOMEM`; if `thread_fork` fails after the trapframe was allocated, the trapframe is `kfree`'d and the child proc destroyed. This avoids leaking the partially-created child.
+
+**Q: In your testing, `forktest` printed lots of "Out of memory" — is that a bug?**
+A: No — this is expected with the stock dumbvm allocator, which **never frees physical pages** (`free_kpages` is a documented no-op / "leak the memory" stub). With only 296KB of RAM in the test environment, repeated forking exhausts memory quickly by design; proper reclamation isn't implemented until the VM assignment. The correct behavior is for `fork()` to fail gracefully with `ENOMEM` rather than crash, which is exactly what happened.
+
+### On waitpid / exit — this is your strongest talking point, since you found and fixed a real bug
+**Q: How do you handle a process that exits while its parent is still running but hasn't called waitpid yet?**
+A: The proc struct is kept alive as a "zombie" — `exited = true` and `exit_status` are recorded under a lock, and `cv_broadcast` wakes any thread already waiting in `waitpid`. The proc struct itself is only `kfree`'d in `proc_destroy`, called either by `waitpid` (once it's collected the status) or, if there's no parent, by the exiting process itself.
+
+**Q: What happens if a parent exits before reaping all of its children?**
+A: **This was an actual bug I found and fixed.** Initially, a child's `parent` pointer kept referencing the parent's `proc` struct directly. If the parent exited and was later destroyed (by its own parent calling `waitpid`), any grandchild still holding that now-dangling pointer would check `parent == NULL` on its own exit — but the pointer wasn't NULL, it was just stale/freed memory — so the grandchild would never self-destroy. It became a permanent zombie that nobody could ever reap, since its true parent no longer existed to call `waitpid` on it.
+
+I fixed this by adding `proc_orphan_children()`, called at the start of `sys__exit`: it scans the PID table for any children whose `parent` pointer equals the exiting process, and sets those to `NULL`. That way, an orphan correctly self-destroys the moment it exits, instead of leaking forever.
+
+**Why this matters concretely:** with `UW` defined, the kernel menu blocks on a semaphore (`no_proc_sem`) that's only posted once a global `proc_count` hits zero. A single permanently-orphaned zombie meant that counter never reached zero — so after `forktest` finished, the kernel menu hung indefinitely and needed a manual interrupt. Fixing the orphaning logic resolved it immediately, confirmed by testing before/after.
+
+**Q: Why do you use a lock + condition variable (rather than, say, a semaphore or busy-waiting) for exit status handoff?**
+A: A lock protects the shared `exited`/`exit_status` fields from concurrent access (parent reading while child writes), and the CV lets a waiting parent block efficiently instead of spinning, waking only when `cv_broadcast` is called on exit.
+
+**Q: What error codes does `waitpid` need to return, and why?**
+A: `ESRCH` if the PID doesn't correspond to a real process; `ECHILD` if the calling process isn't that process's parent (per the man page, a process may only wait on its own children); `EINVAL` for unsupported option flags (since `WNOHANG`/`WUNTRACED`/etc. aren't required for this assignment).
+
+### On execv
+**Q: Why do you copy in the progname and all argument strings into kernel buffers before doing anything else?**
+A: User-space pointers become invalid once the address space is destroyed/replaced. All data that needs to survive the switch (the program name, each argument string) must be copied into kernel memory *before* `curproc_setas()` swaps in the new address space.
+
+**Q: Why open the ELF file (`vfs_open`) before destroying the old address space?**
+A: If the file doesn't exist or fails to open, execv must fail cleanly and leave the calling process's original program running (per its man page semantics) — so the old address space must not be torn down until we're confident the new one will load successfully.
+
+**Q: Walk me through how you build the argv array on the new stack.**
+A: Copy each argument string onto the stack from the end backward (highest address to lowest), 4-byte aligning each string's start; record the resulting user-space pointer for each. Then copy the array of those pointers (NULL-terminated) onto the stack below the strings, 8-byte aligning the final stack pointer (MIPS calling convention expects the stack to be 8-byte aligned at a function's entry). `enter_new_process` is then called with `argc`, the userspace address of the pointer array, the final stack pointer, and the entry point.
+
+**Q: What's the difference between argument passing in `execv` vs. in `runprogram` for the very first process?**
+A: Conceptually identical stack-building logic — copy strings back-to-front, then the pointer array, then align. The difference is only where the source strings come from: in `execv` they're copied in from the calling *user* process's address space (`copyin`/`copyinstr`); in `runprogram` for the first process, they come directly from the kernel's command-line args parsed by the menu, already in kernel memory, so no `copyin` is needed — but `copyout` is still needed to place them onto the new process's stack.
+
+### On PID management
+**Q: Why use a fixed-size PID table with a "reserved" sentinel value rather than just a bitmap or linked list?**
+A: Simple, O(1) lookup by PID, and the sentinel (`(struct proc *)1`) avoids a race where a PID looks "free" to a second allocator between the point it's chosen and the point the real `proc` pointer is installed — the slot is marked reserved-but-not-ready immediately under the same lock.
+
+**Q: Is your PID allocation/lookup path race-safe?**
+A: Yes — a single `pid_lock` (a proper lock, not just a spinlock, since it's held only briefly and never across a blocking operation) protects all reads/writes to `pid_table` and `next_pid`, and lookups distinguish "genuinely free" (`NULL`) from "reserved but under construction" (`(struct proc*)1`) from "live" (real pointer).
+
+### On general design / debugging process
+**Q: What was the hardest bug to track down in this assignment, and how did you find it?**
+A: The orphaned-zombie hang described above. It manifested only indirectly — a hang requiring Ctrl+C after `forktest` completed, with no panic or error message to point at the cause. I ruled out the VM allocator first (checked `ram_stealmem` — it fails cleanly, no spinning), confirmed `as_copy` correctly cleans up on partial failure, and then traced the actual proc lifecycle logic — realizing that a child's `parent` pointer became a stale reference once a parent was reaped, silently preventing the child from ever self-destructing. This is a good example of a bug that's invisible from a single stack trace and only shows up from reasoning about the object lifecycle across multiple processes over time.
+
+**Q: How would you extend this design to support `WNOHANG`?**
+A: In `waitpid`, instead of unconditionally blocking on `cv_wait` until `exited` is true, check `exited` once; if false and `WNOHANG` is set, return immediately (typically with pid 0 and no status collected) rather than sleeping.
+
+---
+
+## Quick self-test before the viva
+Be ready to answer, off the top of your head, without looking at code:
+1. What does `fork()` return in the parent vs. the child, and how is that difference actually implemented at the trapframe level?
+2. What's a zombie process, and whose job is it to eventually free one?
+3. Why can `execv` fail *after* the new address space has already replaced the old one, and what would go wrong if it did?
+4. What OS/161 mechanism did you use to make the kernel menu ("q") wait for user programs to finish before shutting down?
+5. Name one place in your code where you had to be careful about the order of operations to avoid a use-after-free — and explain why.

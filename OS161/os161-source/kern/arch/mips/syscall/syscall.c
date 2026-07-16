@@ -35,7 +35,7 @@
 #include <thread.h>
 #include <current.h>
 #include <syscall.h>
-
+#include <addrspace.h>
 
 /*
  * System call dispatcher.
@@ -124,13 +124,20 @@ syscall(struct trapframe *tf)
 	  err = sys_getpid((pid_t *)&retval);
 	  break;
 	case SYS_waitpid:
-	  err = sys_waitpid((pid_t)tf->tf_a0,
-			    (userptr_t)tf->tf_a1,
-			    (int)tf->tf_a2,
-			    (pid_t *)&retval);
-	  break;
-#endif // UW
+          err = sys_waitpid((pid_t)tf->tf_a0,
+                            (userptr_t)tf->tf_a1,
+                            (int)tf->tf_a2,
+                            (pid_t *)&retval);
+          break;
 
+        case SYS_fork:
+          err = sys_fork(tf, (pid_t *)&retval);
+          break;
+
+        case SYS_execv:
+          err = sys_execv((const char *)tf->tf_a0, (char **)tf->tf_a1);
+          break;
+#endif // UW
 	    /* Add stuff here */
  
 	default:
@@ -179,5 +186,19 @@ syscall(struct trapframe *tf)
 void
 enter_forked_process(struct trapframe *tf)
 {
-	(void)tf;
+        struct trapframe mytf;
+
+        /* copy the trapframe onto this thread's own stack before
+           freeing the heap copy passed in from sys_fork */
+        mytf = *tf;
+        kfree(tf);
+
+        mytf.tf_v0 = 0;     /* fork() returns 0 in the child */
+        mytf.tf_a3 = 0;     /* no error */
+        mytf.tf_epc += 4;   /* advance past the syscall instruction */
+
+        as_activate();
+
+        mips_usermode(&mytf);
+        /* does not return */
 }

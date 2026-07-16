@@ -42,6 +42,7 @@
 #include <addrspace.h>
 #include <vm.h>
 #include <vfs.h>
+#include <copyinout.h>
 #include <syscall.h>
 #include <test.h>
 
@@ -52,12 +53,14 @@
  * Calls vfs_open on progname and thus may destroy it.
  */
 int
-runprogram(char *progname)
+runprogram(char *progname, char **args, int nargs)
 {
 	struct addrspace *as;
 	struct vnode *v;
 	vaddr_t entrypoint, stackptr;
 	int result;
+	int i;
+	vaddr_t arg_ptrs[64 + 1];
 
 	/* Open the file. */
 	result = vfs_open(progname, O_RDONLY, 0, &v);
@@ -97,8 +100,31 @@ runprogram(char *progname)
 		return result;
 	}
 
+	/* Copy each argument string onto the user stack, back to front,
+	   tracking the resulting user-space pointer for each one. */
+	for (i = nargs - 1; i >= 0; i--) {
+		size_t len = strlen(args[i]) + 1;
+		stackptr -= len;
+		stackptr -= stackptr % 4;
+		result = copyout(args[i], (userptr_t)stackptr, len);
+		if (result) {
+			return result;
+		}
+		arg_ptrs[i] = stackptr;
+	}
+	arg_ptrs[nargs] = 0; /* NULL-terminate argv */
+
+	/* Copy the argv pointer array itself onto the stack. */
+	stackptr -= (nargs + 1) * sizeof(vaddr_t);
+	stackptr -= stackptr % 8;
+	result = copyout(arg_ptrs, (userptr_t)stackptr,
+			  (nargs + 1) * sizeof(vaddr_t));
+	if (result) {
+		return result;
+	}
+
 	/* Warp to user mode. */
-	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
+	enter_new_process(nargs /*argc*/, (userptr_t)stackptr /*userspace addr of argv*/,
 			  stackptr, entrypoint);
 	
 	/* enter_new_process does not return. */

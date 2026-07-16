@@ -42,6 +42,11 @@ int whalemating(int, char **);
 #ifdef UW
 int catmouse(int, char **);
 int traffic_simulation(int, char **);
+
+/* ASST1 */
+void math(void);
+void run_producerconsumer(void);
+void runbar(void);
 #endif
 
 /*
@@ -60,6 +65,7 @@ int threadtest3(int, char **);
 int semtest(int, char **);
 int locktest(int, char **);
 int cvtest(int, char **);
+int pidtest(int, char **);
 
 #ifdef UW
 /* Another thread and synchronization test */
@@ -82,7 +88,7 @@ int mallocstress(int, char **);
 int nettest(int, char **);
 
 /* Routine for running a user-level program. */
-int runprogram(char *progname);
+int runprogram(char *progname, char **args, int nargs);
 
 /* Kernel menu system. */
 void menu(char *argstr);

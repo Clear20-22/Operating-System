@@ -37,7 +37,7 @@ sys__exit(int exitcode)
         as_destroy(as);
 
         lock_acquire(p->proc_lock);
-        p->exit_status = _MKWAIT_EXIT(exitcode);
+        p->exit_status = exitcode;
         p->exited = true;
         cv_broadcast(p->exit_cv, p->proc_lock);
         lock_release(p->proc_lock);
@@ -156,8 +156,6 @@ sys_fork(struct trapframe *tf, pid_t *retval)
 
         child_tf = kmalloc(sizeof(struct trapframe));
         if (child_tf == NULL) {
-                as_destroy(child->p_addrspace);
-                child->p_addrspace = NULL;
                 proc_destroy(child);
                 return ENOMEM;
         }
@@ -167,8 +165,6 @@ sys_fork(struct trapframe *tf, pid_t *retval)
                               fork_forkentry, child_tf, 0);
         if (result) {
                 kfree(child_tf);
-                as_destroy(child->p_addrspace);
-                child->p_addrspace = NULL;
                 proc_destroy(child);
                 return result;
         }

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2013
- *	The President and Fellows of Harvard College.
+ *      The President and Fellows of Harvard College.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,8 @@
 
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
+#include <synch.h>  /* required for struct lock, struct cv */
+#include <limits.h> /* PID_MIN / PID_MAX, if defined here */
 
 struct addrspace;
 struct vnode;
@@ -45,30 +47,42 @@ struct vnode;
 struct semaphore;
 #endif // UW
 
+/* Max number of simultaneously-live processes tracked by the pid table. */
+#define MAX_PROC 512
+
 /*
  * Process structure.
  */
 struct proc {
-	char *p_name;			/* Name of this process */
-	struct spinlock p_lock;		/* Lock for this structure */
-	struct threadarray p_threads;	/* Threads in this process */
+        char *p_name;                   /* Name of this process */
+        struct spinlock p_lock;         /* Lock for this structure */
+        struct threadarray p_threads;   /* Threads in this process */
 
-	/* VM */
-	struct addrspace *p_addrspace;	/* virtual address space */
+        /* VM */
+        struct addrspace *p_addrspace;  /* virtual address space */
 
-	/* VFS */
-	struct vnode *p_cwd;		/* current working directory */
+        /* VFS */
+        struct vnode *p_cwd;           /* current working directory */
 
 #ifdef UW
-  /* a vnode to refer to the console device */
-  /* this is a quick-and-dirty way to get console writes working */
-  /* you will probably need to change this when implementing file-related
-     system calls, since each process will need to keep track of all files
-     it has opened, not just the console. */
-  struct vnode *console;                /* a vnode for the console device */
+        struct vnode *console;
 #endif
 
-	/* add more material here as needed */
+        /* ========================= */
+        /* ASST2 ADDITIONS START HERE */
+        /* ========================= */
+
+        pid_t pid;                     /* process ID */
+        pid_t ppid;                    /* parent's process ID (0/-1 if none) */
+        struct proc *parent;           /* parent process, may be NULL */
+
+        struct cv *exit_cv;            /* waitpid synchronization */
+        struct lock *proc_lock;        /* protects exited/exit_status, paired with exit_cv */
+
+        int exit_status;               /* status from exit() */
+        bool exited;                   /* has process exited */
+
+        /* ========================= */
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
@@ -100,5 +114,18 @@ struct addrspace *curproc_getas(void);
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
 
+/* ========================= */
+/* PID management (Task 3)  */
+/* ========================= */
+
+/* Allocate a fresh pid; returns 0 and sets *retval, or an error code. */
+int pid_alloc(pid_t *retval);
+
+/* Free a pid slot once its process has been fully reaped. */
+void pid_dealloc(pid_t pid);
+
+/* Look up the proc struct currently holding a given pid, or NULL. */
+struct proc *proc_lookup_pid(pid_t pid);
+void proc_orphan_children(struct proc *p);
 
 #endif /* _PROC_H_ */
